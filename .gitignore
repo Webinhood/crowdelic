@@ -1,5 +1,7 @@
 # Dependencies
 /node_modules
+/backend/node_modules
+/frontend/node_modules
 /.pnp
 .pnp.js
 
@@ -29,4 +31,3 @@ logs/
 .vscode/
 *.swp
 *.swo
-node_modules
