@@ -1,0 +1,5 @@
+-- Add new columns to tests table
+ALTER TABLE tests
+ADD COLUMN IF NOT EXISTS started_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS error TEXT,
+ADD COLUMN IF NOT EXISTS current_iteration INTEGER DEFAULT 0;

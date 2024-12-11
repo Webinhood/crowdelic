@@ -1,0 +1,46 @@
+{
+  "name": "crowdelic",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "build": "npm run build --workspaces",
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "@typescript-eslint/parser": "^6.13.2",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.55.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "@types/get-port": "^4.0.1",
+    "@types/ioredis": "^4.28.10",
+    "@types/redis": "^4.0.10",
+    "get-port": "^7.1.0",
+    "ioredis": "^5.4.1",
+    "recharts": "^2.14.1",
+    "redis": "^4.7.0",
+    "zod": "^3.23.8"
+  },
+  "type": "module"
+}
