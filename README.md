@@ -8,6 +8,8 @@ O TinyTroupe é uma biblioteca Python experimental da Microsoft que permite:
 - Simular interações entre essas personas em ambientes virtuais (TinyWorld)
 - Usar gpt-4o-mini para gerar comportamentos realistas e gerar avaliações em formato JSON padronizado.
 
+**Nota**: O TinyTroupe está incluído como parte do código fonte do projeto em `/backend/src/python/tinytroupe/`. Não é necessário instalá-lo separadamente.
+
 ## To get started with Crowdelic:
 Read instructions.md to understand the project and basic setup
 Get familiar with TinyTroupe (read TinyTroupe_README.md) - we'll use it extensively!
@@ -19,6 +21,150 @@ We use Purity-UI foi UI, reference files can be consulted in /frontend/src/purit
 Understand that you are not beginning the project, you are a dev that just joined the team.
 Use TypeScript for all new code
 Always, ALWAYS, ask my authorization before doing anything in the code.
+
+## Requisitos do Sistema
+
+### Requisitos Globais
+- Node.js >= 18.x
+- Python >= 3.10
+- Docker e Docker Compose
+- PostgreSQL 15 (via Docker)
+- Redis 7 (via Docker)
+
+### Instalação
+
+1. Clone o repositório:
+```bash
+git clone https://github.com/Webinhood/crowdelic.git
+cd crowdelic
+```
+
+2. Configure as variáveis de ambiente:
+```bash
+cp .env.example .env
+# Edite .env com suas configurações
+```
+
+3. Inicie os serviços Docker:
+```bash
+docker-compose up -d postgres redis
+```
+
+4. Instale as dependências do backend:
+```bash
+cd backend
+npm install
+pip install -r requirements.txt
+```
+
+5. Instale as dependências do frontend:
+```bash
+cd ../frontend
+npm install
+```
+
+6. Execute as migrações do banco de dados:
+```bash
+cd backend
+npm run migrate
+```
+
+7. Inicie o projeto em modo desenvolvimento:
+```bash
+# Terminal 1 - Backend
+cd backend
+npm run dev
+
+# Terminal 2 - Frontend
+cd frontend
+npm run dev
+```
+
+### Principais Dependências
+
+#### Backend
+- Express.js - Framework web
+- TypeScript - Linguagem de programação
+- PostgreSQL - Banco de dados principal
+- Redis - Cache e gerenciamento de sessão
+- Socket.IO - Comunicação em tempo real
+- OpenAI SDK - Integração com GPT-4
+- Winston - Logging
+- Jest - Testes
+
+#### Frontend
+- React 18
+- TypeScript
+- Chakra UI / Purity UI - Framework de UI
+- React Query - Gerenciamento de estado e cache
+- Socket.IO Client - Comunicação em tempo real
+- i18next - Internacionalização
+- Jest e Testing Library - Testes
+
+#### Python (TinyTroupe Integration)
+- TinyTroupe - Framework de personas AI
+- OpenAI - SDK para GPT-4
+- python-dotenv - Gerenciamento de variáveis de ambiente
+- requests - Cliente HTTP
+
+## Estrutura do Projeto
+
+Este é um monorepo gerenciado com npm workspaces, contendo três pacotes principais:
+
+### Frontend (`/frontend`)
+- **Framework**: React 18 com TypeScript
+- **UI**: 
+  - Chakra UI v2.8.2 com tema personalizado Purity UI
+  - @emotion/react e @emotion/styled para estilização
+  - react-icons para ícones
+- **Estado e Cache**: 
+  - @tanstack/react-query v5.12.2
+  - Formik com Yup para formulários
+- **Internacionalização**: 
+  - i18next v24.0.5
+  - react-i18next v15.1.4
+  - Suporte para pt-BR e en
+- **Roteamento**: react-router-dom v6.20.1
+- **Comunicação**: 
+  - axios para requisições HTTP
+  - socket.io-client v4.8.1 para tempo real
+
+### Backend (`/backend`)
+- **Runtime**: Node.js com TypeScript
+- **API**: 
+  - Express.js v4.18.2
+  - cors para CORS
+  - express-pino-logger para logging de requisições
+- **Banco de Dados**: 
+  - PostgreSQL via pg v8.11.3
+  - Redis via ioredis v5.3.2
+- **Autenticação**: 
+  - jsonwebtoken v9.0.2
+  - bcryptjs v2.4.3
+- **IA**: 
+  - OpenAI SDK v4.28.0
+  - TinyTroupe para simulação de personas
+- **Logging**: 
+  - Winston v3.17.0
+  - winston-daily-rotate-file v5.0.0
+
+### Shared (`/shared`)
+- Tipos e interfaces compartilhadas
+- Utilitários comuns
+- Configurações compartilhadas
+
+### DevOps e Ferramentas
+- **Containerização**: Docker e Docker Compose
+- **Linting e Formatação**: 
+  - ESLint v8.55.0
+  - Prettier v3.1.0
+- **Testes**: 
+  - Jest v29.7.0
+  - Testing Library para React
+- **Build e Dev**: 
+  - Vite v5.0.4 (frontend)
+  - ts-node-dev (backend)
+  - concurrently para executar múltiplos scripts
 
 ## Arquitetura
 
@@ -81,7 +227,6 @@ crowdelic/
 ├── logs/                        # Application logs
 ├── start_dev.sh                # Development startup script
 └── TinyTroupe_README.md        # TinyTroupe documentation
-```
 
 ## Pontos de Atenção
 
