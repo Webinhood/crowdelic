@@ -38,7 +38,7 @@ const Register = () => {
 
   const handleSubmit = async (values: { name: string; email: string; password: string; company: string }) => {
     try {
-      await register(values.name, values.email, values.password, values.company);
+      await register(values);
       navigate('/');
     } catch (error) {
       console.error('Registration failed:', error);
@@ -46,35 +46,46 @@ const Register = () => {
   };
 
   const textColor = useColorModeValue('gray.700', 'white');
-  const bgColor = useColorModeValue('white', 'gray.700');
-  const bgIcons = useColorModeValue('teal.200', 'rgba(255, 255, 255, 0.5)');
-  const buttonBgColor = useColorModeValue('teal.500', 'teal.200');
-  const buttonHoverBgColor = useColorModeValue('teal.600', 'teal.300');
-  const buttonTextColor = useColorModeValue('white', 'gray.800');
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const bgIcons = useColorModeValue('pink.100', 'whiteAlpha.200');
+  const buttonBgColor = useColorModeValue('pink.500', 'pink.400');
+  const buttonHoverBgColor = useColorModeValue('pink.600', 'pink.500');
+  const buttonTextColor = useColorModeValue('white', 'white');
 
   return (
-    <Box minH="100vh" w="100%" bg={useColorModeValue('gray.50', 'gray.900')} py={8}>
+    <Box minH="100vh" w="100%" 
+      bgGradient={useColorModeValue(
+        'linear(to-br, gray.50, pink.50)',
+        'linear(to-br, gray.900, purple.900)'
+      )} 
+      py={8}>
       <HStack position="absolute" top={4} right={4}>
         <ThemeToggle />
       </HStack>
       <Container maxW="md">
         <Card
-          bg={useColorModeValue('white', 'navy.800')}
+          bg={useColorModeValue('white', 'gray.800')}
           borderRadius="2xl"
           boxShadow="xl"
           p={8}
+          borderWidth="1px"
+          borderColor={useColorModeValue('gray.200', 'pink.800')}
+          _hover={{
+            borderColor: useColorModeValue('pink.200', 'pink.700'),
+            transition: 'all 0.3s ease-in-out'
+          }}
         >
           <VStack spacing={8} align="stretch">
             <VStack spacing={2}>
               <Heading size="xl" color={useColorModeValue('gray.800', 'white')}>
-                Welcome!
+                Bem-vindo!
               </Heading>
               <Text
                 fontSize="md"
                 color={useColorModeValue('gray.600', 'gray.300')}
                 textAlign="center"
               >
-                Create your account to start using Crowdelic
+                Crie sua conta e comece a usar o Crowdelic
               </Text>
             </VStack>
 
@@ -84,7 +95,7 @@ const Register = () => {
                 color={useColorModeValue('gray.700', 'white')}
                 fontWeight="medium"
               >
-                Register With
+                Crie sua conta com
               </Text>
 
               <HStack spacing={4} justify="center">
@@ -101,26 +112,26 @@ const Register = () => {
                     variant="outline"
                     borderRadius="xl"
                     borderWidth={2}
-                    borderColor={useColorModeValue('gray.200', 'gray.600')}
+                    borderColor={useColorModeValue('gray.200', 'pink.700')}
                     _hover={{
-                      borderColor: useColorModeValue('gray.400', 'gray.400'),
-                      bg: useColorModeValue('gray.50', 'gray.700')
+                      borderColor: useColorModeValue('pink.400', 'pink.500'),
+                      bg: useColorModeValue('pink.50', 'whiteAlpha.100')
                     }}
                   />
                 ))}
               </HStack>
 
               <HStack w="100%">
-                <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
+                <Divider borderColor={useColorModeValue('gray.200', 'pink.700')} />
                 <Text
                   px={4}
                   color={useColorModeValue('gray.500', 'gray.400')}
                   fontSize="sm"
                   fontWeight="medium"
                 >
-                  or
+                  ou
                 </Text>
-                <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
+                <Divider borderColor={useColorModeValue('gray.200', 'pink.700')} />
               </HStack>
 
               <Formik
@@ -138,24 +149,24 @@ const Register = () => {
                     <VStack spacing={4} w="100%">
                       <FormInput
                         name="name"
-                        label="Name"
-                        placeholder="Your name"
+                        label="Nome"
+                        placeholder="Seu nome"
                       />
                       <FormInput
                         name="email"
                         label="Email"
-                        placeholder="Your email address"
+                        placeholder="Seu email"
                       />
                       <FormInput
                         name="password"
-                        label="Password"
+                        label="Senha"
                         type="password"
-                        placeholder="Your password"
+                        placeholder="Sua senha"
                       />
                       <FormInput
                         name="company"
-                        label="Company"
-                        placeholder="Your company name"
+                        label="Empresa"
+                        placeholder="Nome da sua empresa"
                       />
                       <Button
                         type="submit"
@@ -169,7 +180,7 @@ const Register = () => {
                         isLoading={isSubmitting}
                         mt={2}
                       >
-                        Sign Up
+                        Cadastrar
                       </Button>
                     </VStack>
                   </Form>
@@ -179,19 +190,19 @@ const Register = () => {
 
             <HStack justify="center" spacing={1}>
               <Text color={useColorModeValue('gray.600', 'gray.400')}>
-                Already have an account?
+                já tem uma conta?
               </Text>
               <Link
                 as={RouterLink}
                 to="/login"
-                color={useColorModeValue('teal.500', 'teal.200')}
+                color={useColorModeValue('pink.500', 'pink.200')}
                 fontWeight="medium"
                 _hover={{
-                  color: useColorModeValue('teal.600', 'teal.300'),
+                  color: useColorModeValue('pink.600', 'pink.300'),
                   textDecoration: 'none'
                 }}
               >
-                Sign In
+                Entrar
               </Link>
             </HStack>
           </VStack>

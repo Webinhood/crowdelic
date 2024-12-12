@@ -18,7 +18,8 @@ import {
   TestCreate,
   TestEdit,
   TestDetail,
-  Costs
+  Costs,
+  Landing
 } from './config/lazyRoutes';
 
 const App = () => {
@@ -35,35 +36,35 @@ const App = () => {
       <LanguageProvider>
         <ErrorBoundary>
           <Routes>
+            {/* Public Routes */}
+            <Route
+              path="/"
+              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />}
+            />
             <Route
               path="/login"
-              element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
             />
             <Route
               path="/register"
-              element={isAuthenticated ? <Navigate to="/" replace /> : <Register />}
+              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />}
             />
             
             {/* Protected Routes */}
-            <Route
-              path="/"
-              element={
-                isAuthenticated ? <Layout /> : <Navigate to="/login" replace />
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="personas">
+            <Route element={isAuthenticated ? <Layout /> : <Navigate to="/" replace />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/personas">
                 <Route index element={<PersonaList />} />
-                <Route path="new" element={<PersonaCreate />} />
+                <Route path="create" element={<PersonaCreate />} />
                 <Route path=":id/edit" element={<PersonaEdit />} />
               </Route>
-              <Route path="tests">
+              <Route path="/tests">
                 <Route index element={<TestList />} />
-                <Route path="new" element={<TestCreate />} />
+                <Route path="create" element={<TestCreate />} />
                 <Route path=":id" element={<TestDetail />} />
                 <Route path=":id/edit" element={<TestEdit />} />
               </Route>
-              <Route path="costs" element={<Costs />} />
+              <Route path="/costs" element={<Costs />} />
             </Route>
 
             {/* Catch all route */}

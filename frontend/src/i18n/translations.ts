@@ -482,6 +482,34 @@ export const translations = {
         costs: 'Costs',
         dashboard: 'Dashboard',
         logout: 'Logout'
+      },
+      landing: {
+        hero: {
+          title: 'Transform your ideas into',
+          highlight: 'powerful insights',
+          description: 'AI-powered user testing platform that helps you better understand your audience and make data-driven decisions.',
+          cta: 'Get Started',
+          secondary: 'Learn More'
+        },
+        features: {
+          title: 'Why choose Crowdelic?',
+          feature1: {
+            title: 'Fast and Efficient',
+            description: 'Get valuable insights in minutes, not weeks'
+          },
+          feature2: {
+            title: 'Intelligent Personas',
+            description: 'Simulate real interactions with AI-based personas'
+          },
+          feature3: {
+            title: 'Detailed Analysis',
+            description: 'Visualize data and metrics in real-time'
+          },
+          feature4: {
+            title: 'Total Customization',
+            description: 'Tailor tests to your specific needs'
+          }
+        }
       }
     }
   },
@@ -969,6 +997,34 @@ export const translations = {
         costs: 'Custos',
         dashboard: 'Dashboard',
         logout: 'Sair'
+      },
+      landing: {
+        hero: {
+          title: 'Transforme suas ideias em',
+          highlight: 'insights poderosos',
+          description: 'Plataforma de testes de usuário alimentada por IA que ajuda você a entender melhor seu público e tomar decisões baseadas em dados.',
+          cta: 'Comece Agora',
+          secondary: 'Saiba Mais'
+        },
+        features: {
+          title: 'Por que escolher o Crowdelic?',
+          feature1: {
+            title: 'Rápido e Eficiente',
+            description: 'Obtenha insights valiosos em minutos, não em semanas'
+          },
+          feature2: {
+            title: 'Personas Inteligentes',
+            description: 'Simule interações reais com personas baseadas em IA'
+          },
+          feature3: {
+            title: 'Análise Detalhada',
+            description: 'Visualize dados e métricas em tempo real'
+          },
+          feature4: {
+            title: 'Personalização Total',
+            description: 'Adapte os testes às suas necessidades específicas'
+          }
+        }
       }
     }
   }

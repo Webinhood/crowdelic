@@ -13,6 +13,7 @@ import {
   Flex,
   Divider,
   HStack,
+  Image,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { FaUser, FaHome, FaUsers, FaClipboardList, FaChartLine } from 'react-icons/fa';
@@ -145,9 +146,12 @@ export const Sidebar = () => {
       <Flex direction="column" h="full" py={3}>
         {/* Logo or Brand */}
         <Box px={6} mb={6}>
-          <Text fontSize="4xl" fontWeight="bold" color="orange.400">
-            Crowdelic
-          </Text>
+          <Image
+            src={useColorModeValue('/logo/crowdelic-logo-light-mode.png', '/logo/crowdelic-logo-dark-mode.png')}
+            alt="Crowdelic Logo"
+            maxH="50px"
+            objectFit="contain"
+          />
         </Box>
 
         {/* Navigation Links */}

@@ -274,6 +274,12 @@ export class TinyTroupeService {
       console.log('================== OPENAI INPUT END ==================== 🔍\n');
 
       try {
+        this.logger.info('Iniciando chamada OpenAI com configuração:', {
+          model: 'gpt-4o-mini',
+          temperature: 0.7,
+          max_tokens: 4000
+        });
+
         const completion = await this.openai.chat.completions.create({
           messages,
           model: 'gpt-4o-mini',
@@ -282,8 +288,14 @@ export class TinyTroupeService {
           response_format: { type: "json_object" }
         });
 
+        this.logger.info('Resposta recebida da OpenAI:', {
+          id: completion.id,
+          model: completion.model,
+          usage: completion.usage
+        });
+
         const response = completion.choices[0].message.content;
-        console.log('OpenAI Response:', response);
+        this.logger.info('Conteúdo da resposta:', response);
 
         // Validar e corrigir o formato da resposta
         try {
@@ -307,7 +319,22 @@ export class TinyTroupeService {
           throw new Error('Invalid response format from OpenAI');
         }
       } catch (error) {
-        this.logger.error('Error generating OpenAI response:', error);
+        this.logger.error('Erro na chamada OpenAI:', {
+          error: error.message,
+          name: error.name,
+          stack: error.stack,
+          cause: error.cause
+        });
+        
+        if (error.response) {
+          this.logger.error('Detalhes do erro OpenAI:', {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            headers: error.response.headers,
+            data: error.response.data
+          });
+        }
+
         throw error;
       }
     } catch (error) {
