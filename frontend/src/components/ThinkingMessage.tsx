@@ -3,11 +3,14 @@ import {
   Box,
   HStack,
   Text,
-  Avatar,
   useColorModeValue,
+  VStack,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import TypingIndicator from './TypingIndicator';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const MotionText = motion(Text);
 
 interface ThinkingMessageProps {
   persona: {
@@ -16,9 +19,10 @@ interface ThinkingMessageProps {
     occupation: string;
   };
   isVisible: boolean;
+  compact?: boolean;
 }
 
-const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ persona, isVisible }) => {
+const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ persona, isVisible, compact = false }) => {
   const { t } = useTranslation();
   const [currentStateIndex, setCurrentStateIndex] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -27,13 +31,13 @@ const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ persona, isVisible })
   const secondaryTextColor = useColorModeValue('gray.500', 'gray.400');
 
   const thinkingStates = [
-    'analyzing',
-    'reflecting',
-    'organizing',
-    'elaborating',
-    'reviewing',
-    'writing',
-    'finishing'
+    'Analisando conteúdo',  
+    'Refletindo sobre o objetivo',
+    'Organizando pensamentos',
+    'Elaborando resposta',
+    'Revisando detalhes',
+    'Escrevendo resposta',
+    'Finalizando'
   ];
 
   const clearCurrentInterval = () => {
@@ -79,6 +83,27 @@ const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ persona, isVisible })
     return null;
   }
 
+  if (compact) {
+    return (
+      <AnimatePresence mode="wait">
+        <HStack spacing={2} align="center">
+          <MotionText
+            fontSize="sm"
+            color={secondaryTextColor}
+            key={currentStateIndex}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {thinkingStates[currentStateIndex]}
+          </MotionText>
+          <TypingIndicator size="sm" />
+        </HStack>
+      </AnimatePresence>
+    );
+  }
+
   return (
     <Box
       borderWidth="1px"
@@ -90,20 +115,23 @@ const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ persona, isVisible })
       width="100%"
     >
       <HStack spacing={4} align="flex-start">
-        <Avatar
-          size="md"
-          name={persona.name}
-          src={persona.avatar}
-        />
         <Box flex={1}>
-          <Text fontWeight="medium" fontSize="sm">{persona.name}</Text>
-          <Text fontSize="xs" color={secondaryTextColor} mb={2}>{persona.occupation}</Text>
-          <HStack spacing={2} align="center">
-            <TypingIndicator />
-            <Text fontSize="sm" color={secondaryTextColor}>
-              {t(`test.thinking.states.${thinkingStates[currentStateIndex]}`)}
-            </Text>
-          </HStack>
+          <AnimatePresence mode="wait">
+            <HStack spacing={2} align="center">
+              <MotionText
+                fontSize="sm"
+                color={secondaryTextColor}
+                key={currentStateIndex}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {thinkingStates[currentStateIndex]}
+              </MotionText>
+              <TypingIndicator size="sm" />
+            </HStack>
+          </AnimatePresence>
         </Box>
       </HStack>
     </Box>

@@ -9,6 +9,7 @@ import { personaRouter } from './routes/persona';
 import { testRouter } from './routes/test';
 import { costsRouter } from './routes/costs';
 import { testMessagesRouter } from './routes/test_messages';
+import { usersRouter } from './routes/users';
 import { TinyTroupeService } from './services/tinytroupe_service';
 import { CostsService } from './services/costs_service';
 import WebSocketService from './websocket';
@@ -76,6 +77,7 @@ app.use('/api/personas', personaRouter);
 app.use('/api/tests', testRouter);
 app.use('/api/tests', testMessagesRouter);
 app.use('/api/costs', costsRouter);
+app.use('/api/users', usersRouter);
 
 // Add error tracking middleware after all routes
 app.use(errorTracking());

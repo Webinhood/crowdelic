@@ -5,115 +5,147 @@ import {
   Icon,
   Text,
   Stack,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   Button,
   Flex,
   Divider,
   HStack,
   Image,
+  useColorMode,
+  useDisclosure,
+  Collapse,
 } from '@chakra-ui/react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { FaUser, FaHome, FaUsers, FaClipboardList, FaChartLine } from 'react-icons/fa';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  FiHome,
+  FiUsers,
+  FiClipboard,
+  FiDollarSign,
+  FiUserPlus,
+  FiLogOut,
+  FiPlus,
+  FiChevronDown,
+  FiChevronRight,
+} from 'react-icons/fi';
 import { useAuth } from '@hooks/useAuth';
 import { ThemeToggle } from '../ThemeToggle';
 import { useTranslation } from 'react-i18next';
+import { useNavigation } from '../../contexts/NavigationContext';
 
-const NavItem = ({ icon, children, to }: { icon: React.ElementType; children: React.ReactNode; to: string }) => {
+const NavItem = ({
+  icon,
+  children,
+  to = '/',
+  hasSubItems,
+  isExpanded,
+  onToggle,
+  isSubItem,
+  ...rest
+}: {
+  icon: React.ElementType;
+  children: React.ReactNode;
+  to: string;
+  hasSubItems?: boolean;
+  isExpanded?: boolean;
+  onToggle?: () => void;
+  isSubItem?: boolean;
+}) => {
   const location = useLocation();
-  const isActive = location.pathname === to;
-  const activeColor = useColorModeValue('teal.600', 'teal.200');
+  const navigate = useNavigate();
+  const activeColor = useColorModeValue('gray.700', 'white');
   const inactiveColor = useColorModeValue('gray.600', 'gray.400');
-  const hoverBg = useColorModeValue('gray.100', 'gray.700');
-  const iconBg = useColorModeValue('teal.50', 'gray.700');
-  const activeIconBg = useColorModeValue('teal.100', 'teal.700');
+  const hoverBg = useColorModeValue('gray.100', 'whiteAlpha.100');
+
+  const isActive = location.pathname === to;
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!hasSubItems) {
+      navigate(to);
+    } else if (onToggle) {
+      onToggle();
+    }
+  };
 
   return (
-    <RouterLink to={to}>
-      <Flex
-        align="center"
-        p="3"
-        mx="3"
-        borderRadius="lg"
-        role="group"
-        cursor="pointer"
-        position="relative"
-        color={isActive ? activeColor : inactiveColor}
-        bg={isActive ? useColorModeValue('teal.50', 'gray.800') : 'transparent'}
-        _hover={{
-          bg: hoverBg,
-          color: activeColor,
-        }}
-      >
-        {isActive && (
-          <Box
-            position="absolute"
-            left="0"
-            top="50%"
-            transform="translateY(-50%)"
-            w="3px"
-            h="70%"
-            bg={activeColor}
-            borderRightRadius="sm"
-          />
-        )}
-        <Flex
-          align="center"
-          justify="center"
-          w="32px"
-          h="32px"
-          borderRadius="md"
-          bg={isActive ? activeIconBg : iconBg}
-          mr="3"
-          ml={isActive ? "2" : "0"}
-        >
-          <Icon
-            fontSize="18"
-            as={icon}
-            color={isActive ? useColorModeValue('white', 'teal.200') : undefined}
-          />
-        </Flex>
-        <Text fontSize="md" fontWeight={isActive ? "semibold" : "normal"}>
-          {children}
-        </Text>
-      </Flex>
-    </RouterLink>
+    <Box
+      as="button"
+      onClick={handleClick}
+      display="flex"
+      alignItems="center"
+      w="100%"
+      p={2}
+      pl={isSubItem ? 10 : 3}
+      borderRadius="lg"
+      role="group"
+      cursor="pointer"
+      bg={isActive ? hoverBg : 'transparent'}
+      color={isActive ? activeColor : inactiveColor}
+      _hover={{
+        bg: hoverBg,
+        color: activeColor,
+      }}
+      transition="all 0.2s"
+      {...rest}
+    >
+      {icon && <Icon as={icon} mr={4} boxSize="4" />}
+      <Text flex={1} textAlign="left" fontSize={isSubItem ? "sm" : "md"}>
+        {children}
+      </Text>
+      {hasSubItems && !isExpanded && (
+        <Icon
+          as={FiChevronRight}
+          w={4}
+          h={4}
+        />
+      )}
+      {hasSubItems && isExpanded && (
+        <Icon
+          as={FiChevronDown}
+          w={4}
+          h={4}
+        />
+      )}
+    </Box>
   );
 };
 
-const SidebarSection = ({ title, children }: { title?: string; children: React.ReactNode }) => (
-  <Box>
-    {title && (
-      <Text
-        px="6"
-        mb="3"
-        fontSize="xs"
-        fontWeight="semibold"
-        textTransform="uppercase"
-        letterSpacing="wider"
-        color={useColorModeValue('gray.600', 'gray.400')}
-      >
-        {title}
-      </Text>
-    )}
-    {children}
-  </Box>
-);
-
 const Links = [
-  { name: 'menu.home', icon: FaHome, to: '/' },
-  { name: 'menu.personas', icon: FaUsers, to: '/personas' },
-  { name: 'menu.tests', icon: FaClipboardList, to: '/tests' },
-  { name: 'menu.costs', icon: FaChartLine, to: '/costs' },
+  { name: 'Início', icon: FiHome, to: '/dashboard' },
+  {
+    name: 'Personas',
+    icon: FiUsers,
+    to: '/personas',
+    subItems: [
+      { name: 'Lista', icon: FiClipboard, to: '/personas' },
+      { name: 'Criar', icon: FiPlus, to: '/personas/create' },
+    ],
+  },
+  {
+    name: 'Testes',
+    icon: FiClipboard,
+    to: '/tests',
+    subItems: [
+      { name: 'Lista', icon: FiClipboard, to: '/tests' },
+      { name: 'Criar', icon: FiPlus, to: '/tests/create' },
+    ],
+  },
+  { name: 'Custos', icon: FiDollarSign, to: '/costs' },
+  { name: 'Usuários', icon: FiUserPlus, to: '/users' },
 ];
 
 export const Sidebar = () => {
-  const { user, logout } = useAuth();
+  const { colorMode, toggleColorMode } = useColorMode();
+  const { onOpen } = useDisclosure();
+  const { expandedItems, toggleExpanded } = useNavigation();
+  const navigate = useNavigate();
   const { t } = useTranslation();
-  const bg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const { logout } = useAuth();
+  const location = useLocation();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   return (
     <Box
@@ -121,91 +153,78 @@ export const Sidebar = () => {
       pos="fixed"
       top="0"
       left="0"
+      zIndex="sticky"
       h="100vh"
-      w={{ base: '240px' }}
-      bg={bg}
+      pb="10"
+      overflowX="hidden"
+      overflowY="hidden"
+      bg={useColorModeValue('white', 'gray.800')}
       borderRight="1px"
-      borderRightColor={borderColor}
-      display={{ base: 'none', md: 'block' }}
-      zIndex={2}
-      transition=".3s ease"
-      overflowY="auto"
-      css={{
-        '&::-webkit-scrollbar': {
-          width: '4px',
-        },
-        '&::-webkit-scrollbar-track': {
-          width: '6px',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          background: borderColor,
-          borderRadius: '24px',
-        },
-      }}
+      borderRightColor={useColorModeValue('gray.200', 'gray.700')}
+      w="60"
     >
-      <Flex direction="column" h="full" py={3}>
-        {/* Logo or Brand */}
-        <Box px={6} mb={6}>
-          <Image
-            src={useColorModeValue('/logo/crowdelic-logo-light-mode.png', '/logo/crowdelic-logo-dark-mode.png')}
-            alt="Crowdelic Logo"
-            maxH="50px"
-            objectFit="contain"
-          />
-        </Box>
+      <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
+        <Image 
+          src={colorMode === 'dark' ? '/logo/crowdelic-logo-dark-mode.png' : '/logo/crowdelic-logo-light-mode.png'} 
+          alt="Logo" 
+          h="45px" 
+        />
+      </Flex>
 
-        {/* Navigation Links */}
-        <SidebarSection>
+      <Flex
+        direction="column"
+        as="nav"
+        fontSize="sm"
+        color="gray.600"
+        aria-label="Main Navigation"
+        h="calc(100vh - 80px)"
+        justify="space-between"
+      >
+        <Stack spacing={0} px="4">
           {Links.map((link) => (
-            <NavItem key={link.name} icon={link.icon} to={link.to}>
-              {t(link.name)}
-            </NavItem>
+            <React.Fragment key={link.name}>
+              <NavItem
+                icon={link.icon}
+                to={link.to}
+                hasSubItems={!!link.subItems}
+                isExpanded={expandedItems[link.name]}
+                onToggle={() => toggleExpanded(link.name)}
+              >
+                {link.name}
+              </NavItem>
+              
+              <Collapse in={expandedItems[link.name]} animateOpacity>
+                <Stack spacing={0.5} mt={0.5}>
+                  {link.subItems?.map((subItem) => (
+                    <NavItem
+                      key={subItem.name}
+                      icon={subItem.icon}
+                      to={subItem.to}
+                      isSubItem
+                    >
+                      {subItem.name}
+                    </NavItem>
+                  ))}
+                </Stack>
+              </Collapse>
+            </React.Fragment>
           ))}
-        </SidebarSection>
+        </Stack>
 
-        <Box flex={1} />
-
-        <Divider mb={3} borderColor={borderColor} />
-
-        {/* User Section */}
-        <Box px={3}>
-          <Menu>
-            <MenuButton
-              as={Button}
-              w="full"
-              h="auto"
-              py={2}
-              variant="ghost"
-              justifyContent="start"
-            >
-              <HStack spacing={3}>
-                <Flex
-                  align="center"
-                  justify="center"
-                  w="32px"
-                  h="32px"
-                  borderRadius="md"
-                  bg={useColorModeValue('teal.50', 'gray.700')}
-                >
-                  <Icon
-                    as={FaUser}
-                    fontSize="16"
-                    color={useColorModeValue('teal.500', 'teal.200')}
-                  />
-                </Flex>
-                <Text fontSize="sm" fontWeight="medium">
-                  {user?.email?.split('@')[0]}
-                </Text>
-              </HStack>
-            </MenuButton>
-            <MenuList>
-              <MenuItem onClick={logout}>{t('menu.logout')}</MenuItem>
-            </MenuList>
-          </Menu>
-          <Box mt={3}>
+        <Stack px="4" pb="4">
+          <Divider />
+          <HStack justify="space-between" py={4}>
             <ThemeToggle />
-          </Box>
-        </Box>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              leftIcon={<Icon as={FiLogOut} />}
+              size="sm"
+            >
+              Sair
+            </Button>
+          </HStack>
+        </Stack>
       </Flex>
     </Box>
   );

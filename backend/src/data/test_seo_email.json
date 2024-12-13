@@ -1,0 +1,37 @@
+{
+  "title": "Email Marketing SEO para Ex-Clientes Webinhood",
+  "description": "Teste de email marketing focado em reengajamento de ex-clientes da Webinhood para serviços de SEO, destacando resultados anteriores e novas oportunidades",
+  "objective": "Avaliar a eficácia de uma campanha de email marketing para venda de serviços de SEO para ex-clientes que já contrataram desenvolvimento de sites, focando na continuidade do relacionamento e resultados de longo prazo",
+  "language": "pt",
+  "settings": {
+    "max_iterations": 3,
+    "temperature": 0.7,
+    "response_format": "detailed",
+    "evaluation_criteria": [
+      "Clareza da proposta de valor",
+      "Personalização e relevância",
+      "Call-to-action efetivo",
+      "Tom profissional e acolhedor"
+    ]
+  },
+  "topics": [
+    "SEO",
+    "Marketing Digital",
+    "Email Marketing",
+    "Reengajamento de Clientes"
+  ],
+  "target_audience": {
+    "primary": "Ex-clientes da Webinhood que contrataram desenvolvimento de site",
+    "secondary": "Gestores de marketing e decisores de negócio",
+    "pain_points": [
+      "Necessidade de melhor visibilidade nos buscadores",
+      "Desejo de maximizar o investimento já feito no site",
+      "Preocupação com ROI do marketing digital"
+    ],
+    "demographics": {
+      "business_size": "Pequenas e médias empresas",
+      "industry": "Diversos setores",
+      "decision_maker_level": "Gerência e diretoria"
+    }
+  }
+}

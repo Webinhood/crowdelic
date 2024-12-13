@@ -1,0 +1,250 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "logs/.2702af7302d0aa2ff689707c7a528521d67330eb-audit.json",
+    "files": [
+        {
+            "date": 1733927043849,
+            "name": "logs/backend-2024-12-11.log",
+            "hash": "4a24b966d06e6b3a6bd8bdd325fc16d7f0f02c7e89313277b0576a8ddadc04d4"
+        },
+        {
+            "date": 1733972403749,
+            "name": "logs/backend-2024-12-12.log",
+            "hash": "672a735b4761a49472c28a3df8fca1dee74d6bae8f1bc95cba319b8bbe2152a7"
+        },
+        {
+            "date": 1734028068542,
+            "name": "logs/backend-2024-12-12.log.1",
+            "hash": "bfaf27645c418b37c8c77ae4435983a821cda3cd3c3a5be703e748d077cf878f"
+        },
+        {
+            "date": 1734028074047,
+            "name": "logs/backend-2024-12-12.log.2",
+            "hash": "3b6643883b08b228b128995a28f76872d7767af1410cb05a8f97815c4308e0c5"
+        },
+        {
+            "date": 1734028079094,
+            "name": "logs/backend-2024-12-12.log.3",
+            "hash": "7f6b036cd1cfc2131946d16e1bbc036342806dc17258531ecfcee796af7032d0"
+        },
+        {
+            "date": 1734028084054,
+            "name": "logs/backend-2024-12-12.log.4",
+            "hash": "c9561c17cec816185e0bc0ffada29956544c212003a73449507aa1b68bfac2b0"
+        },
+        {
+            "date": 1734028089322,
+            "name": "logs/backend-2024-12-12.log.5",
+            "hash": "f5af4998e1300253453c31519b1caf14ea7ca91c68ffe90a1aeb710ac867d0f2"
+        },
+        {
+            "date": 1734028094864,
+            "name": "logs/backend-2024-12-12.log.6",
+            "hash": "3fb79ea5758bab139857f3a3c526ea9a6051d74c5c8d00762336bbefdac30536"
+        },
+        {
+            "date": 1734028100405,
+            "name": "logs/backend-2024-12-12.log.7",
+            "hash": "d3a43dfc4cbb045432354f85af12c9c3da7731ef01a4d626b0133ba271b0ce13"
+        },
+        {
+            "date": 1734028106280,
+            "name": "logs/backend-2024-12-12.log.8",
+            "hash": "142f1292843918d070a9e6e50606dfba521cfadd2dfdc8ab2fbd7ee4d9f234e9"
+        },
+        {
+            "date": 1734028112195,
+            "name": "logs/backend-2024-12-12.log.9",
+            "hash": "6f0736f8a3acbece72f59fa0c6531d2fa4de6285644468471da8411623a87db9"
+        },
+        {
+            "date": 1734028118063,
+            "name": "logs/backend-2024-12-12.log.10",
+            "hash": "7e96d533456af9522e27980831bde801988876a2223f71e87ec3c9dcda0d0254"
+        },
+        {
+            "date": 1734028124416,
+            "name": "logs/backend-2024-12-12.log.11",
+            "hash": "03fd2a5bd49677ac135404f54921f26e0ab5e0145d215c19e7821dfca2db6574"
+        },
+        {
+            "date": 1734028130431,
+            "name": "logs/backend-2024-12-12.log.12",
+            "hash": "24543f8bf0de108f4ecbc690ba04814fd70bd49f32908e3b27af27878eee5216"
+        },
+        {
+            "date": 1734028136300,
+            "name": "logs/backend-2024-12-12.log.13",
+            "hash": "93b837d5e9d019aa5d2911f2ffcc42836e3bd46f78161d7e6033a5556b41a7a6"
+        },
+        {
+            "date": 1734028142455,
+            "name": "logs/backend-2024-12-12.log.14",
+            "hash": "8bc66dcfce012a1671fdf339ef863cba7732aeeee4168c6a60215d381a7d4ae4"
+        },
+        {
+            "date": 1734028148824,
+            "name": "logs/backend-2024-12-12.log.15",
+            "hash": "6bdaddb0ec048c8d652e51ee0deaeab520557ad4763b104dddc4b16e5017a2dc"
+        },
+        {
+            "date": 1734028155396,
+            "name": "logs/backend-2024-12-12.log.16",
+            "hash": "7b628f917b132750e179e0d2e9e184dc4761490d0af82d9de991dc275d8995c0"
+        },
+        {
+            "date": 1734028162039,
+            "name": "logs/backend-2024-12-12.log.17",
+            "hash": "12f652b860fbed1637941c55fc640527ae9b3c92a388ce8743ba93884e466148"
+        },
+        {
+            "date": 1734028170446,
+            "name": "logs/backend-2024-12-12.log.18",
+            "hash": "666de949e951ead8e8dd8dd82b73fe768985f2c15e99357623be80fd651ab8d5"
+        },
+        {
+            "date": 1734028176634,
+            "name": "logs/backend-2024-12-12.log.19",
+            "hash": "3bcd65502c8adf10c6a2dc3fee65c67cf54500cfbe31fb6308b7bfb300134b3f"
+        },
+        {
+            "date": 1734028183336,
+            "name": "logs/backend-2024-12-12.log.20",
+            "hash": "c8ae6a8fdfeb9930a8f09a569effb20f933f448d880f775a9cb19708bb713f39"
+        },
+        {
+            "date": 1734028189960,
+            "name": "logs/backend-2024-12-12.log.21",
+            "hash": "fe4defaf41efed1a480419b5ef2a48adc2bec29688b5c5597090f0d4d3cac21e"
+        },
+        {
+            "date": 1734028197856,
+            "name": "logs/backend-2024-12-12.log.22",
+            "hash": "5cbc119bd0f986d06a3412239b092c59c9a4548a5be72e96064d8af460343bae"
+        },
+        {
+            "date": 1734028206056,
+            "name": "logs/backend-2024-12-12.log.23",
+            "hash": "fcbb29258e05f3be5a5a0f614e62278fa9fb96e515241c92bd3553de3d872b5b"
+        },
+        {
+            "date": 1734028213422,
+            "name": "logs/backend-2024-12-12.log.24",
+            "hash": "3e81c5073f6fc453b3cefdccb4ec8ec5adc92bfd858ee0781a17ee1f3624cb88"
+        },
+        {
+            "date": 1734028221128,
+            "name": "logs/backend-2024-12-12.log.25",
+            "hash": "c511a47deec7a3d581509e641dec275c22cd8d5c9ea79c201dd54ddc7167c603"
+        },
+        {
+            "date": 1734028228573,
+            "name": "logs/backend-2024-12-12.log.26",
+            "hash": "5057c216095f66ef8460c9394103846a02ac25a555b004d2bbe6816f942d4342"
+        },
+        {
+            "date": 1734028235897,
+            "name": "logs/backend-2024-12-12.log.27",
+            "hash": "598c51d0d433e1c05a5704b21d0112bbc6bda87bed34745613a1dfffc090791d"
+        },
+        {
+            "date": 1734028242329,
+            "name": "logs/backend-2024-12-12.log.28",
+            "hash": "dc1ac74d56492740f4515a1b03167f13c96abb722d6075c59f7a071ad8a10665"
+        },
+        {
+            "date": 1734028249783,
+            "name": "logs/backend-2024-12-12.log.29",
+            "hash": "4a129d5acf56dd226c3685640b9f60eeb9e3489e28609770ecf02bde84fba7a1"
+        },
+        {
+            "date": 1734028256612,
+            "name": "logs/backend-2024-12-12.log.30",
+            "hash": "e15d38509e092f461617720d99690617e57953931997213cbe38c448d61b49b7"
+        },
+        {
+            "date": 1734028264188,
+            "name": "logs/backend-2024-12-12.log.31",
+            "hash": "07144e561a3ad4d76124dae8a63ba4718461974dd5190e1a044eb846c6daf925"
+        },
+        {
+            "date": 1734028271167,
+            "name": "logs/backend-2024-12-12.log.32",
+            "hash": "4d2285a5184d226c22e3e131aa06353c34b0088ba983d81eaf1a1c6b334f3f13"
+        },
+        {
+            "date": 1734028278156,
+            "name": "logs/backend-2024-12-12.log.33",
+            "hash": "c2b953fcc2abcc651f5be615bd6129555d98117d1aead3dee420e5793c496b45"
+        },
+        {
+            "date": 1734028286610,
+            "name": "logs/backend-2024-12-12.log.34",
+            "hash": "21e7f6bb9cb5b42f56a647b30f21074e68e3591e96961e4d0c077e0810984ad8"
+        },
+        {
+            "date": 1734028294122,
+            "name": "logs/backend-2024-12-12.log.35",
+            "hash": "351036c9fa7621cd157e7a0af97a255857e966dfce53fe4b6e66f7475d6e7b7b"
+        },
+        {
+            "date": 1734028302607,
+            "name": "logs/backend-2024-12-12.log.36",
+            "hash": "d0b726be239b907ae2b3b135f848193c7ca5218ecc3334cb5e94a381508d19d4"
+        },
+        {
+            "date": 1734028309785,
+            "name": "logs/backend-2024-12-12.log.37",
+            "hash": "93d22d4e6fef8eddf3c66c5fbde3479c923b70ade986bb957f7a9acd6621d841"
+        },
+        {
+            "date": 1734028318173,
+            "name": "logs/backend-2024-12-12.log.38",
+            "hash": "b5c456f1d27f38479dfd6656cf8f06fc9a93016eb568b32aba2ea9d61d849f0e"
+        },
+        {
+            "date": 1734028325547,
+            "name": "logs/backend-2024-12-12.log.39",
+            "hash": "192c434a171f900132c9c8f3472481e85036a5eaa295b18826867baf8a190999"
+        },
+        {
+            "date": 1734028334198,
+            "name": "logs/backend-2024-12-12.log.40",
+            "hash": "8fa4c9d99ec0446aeac0fb5cf7490234bd344f6274fc7c52c3f397c03e6f8b92"
+        },
+        {
+            "date": 1734028342310,
+            "name": "logs/backend-2024-12-12.log.41",
+            "hash": "12b4e0e7a54239d60d2656a644a50baca2e187cfb7d274ea96a8cc48eac0d609"
+        },
+        {
+            "date": 1734028352049,
+            "name": "logs/backend-2024-12-12.log.42",
+            "hash": "339a8c29ede59860cfb89e34b8ead3e426bb15c9a78736854cf38d8a18ea64b2"
+        },
+        {
+            "date": 1734028361527,
+            "name": "logs/backend-2024-12-12.log.43",
+            "hash": "a99d7a15720951a867a81b5b31ff09403e05b5dc02357b781de6223b53823742"
+        },
+        {
+            "date": 1734028372500,
+            "name": "logs/backend-2024-12-12.log.44",
+            "hash": "91a44205d26b58a381fd136d502a8698ab96021d224763ca6bb4ea7ebffb3dfd"
+        },
+        {
+            "date": 1734028398456,
+            "name": "logs/backend-2024-12-12.log.45",
+            "hash": "31fae6a48a3e4986ec7cfa83fb35e0b69430ed7ba79d427d30a593350d41c7d1"
+        },
+        {
+            "date": 1734058978091,
+            "name": "logs/backend-2024-12-13.log",
+            "hash": "73cbdc6ece3ecdff797614c747c40ecab3b3a315862e923e958d61567c581734"
+        }
+    ],
+    "hashType": "sha256"
+}

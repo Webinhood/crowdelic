@@ -34,7 +34,8 @@ import {
   AccordionPanel,
   Select,
   Grid,
-  GridItem
+  GridItem,
+  Stack
 } from '@chakra-ui/react';
 import { FaRobot, FaUser, FaComments, FaPlay, FaStop, FaEdit, FaArrowLeft, FaClock, FaLayerGroup, FaFileAlt, FaEye, FaEyeSlash, FaChevronDown, FaHeart, FaThumbsUp, FaThumbsDown, FaTags, FaLink } from 'react-icons/fa';
 import { getTest, runTest, stopTest, getTestResults, getLiveMessages, updateTest, getTestMessages } from '@services/test';
@@ -45,6 +46,7 @@ import TestAnalytics from '@components/TestAnalytics';
 import TestCosts from '@components/TestCosts';
 import TestMessage from '../components/TestMessage';
 import ThinkingMessage from '../components/ThinkingMessage';
+import TestResponses from '../components/TestResponses'; // Import the TestResponses component
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useTranslation } from 'react-i18next';
 import { useErrorHandler } from '../hooks/useErrorHandler';
@@ -67,6 +69,10 @@ const TestDetail = () => {
     sortBy: 'time'
   });
   const [thinkingPersonas, setThinkingPersonas] = useState<Set<string>>(new Set());
+  const [personaStatus, setPersonaStatus] = useState<Array<{
+    personaId: string;
+    status: 'pending' | 'running' | 'completed' | 'error';
+  }>>([]);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   // Theme hooks
@@ -78,92 +84,231 @@ const TestDetail = () => {
   // Queries
   const { data: test, isLoading: isLoadingTest } = useQuery({
     queryKey: ['test', id],
-    queryFn: () => getTest(id!),
+    queryFn: async () => {
+      console.log('[TestDetail] Fetching test data for id:', id);
+      const result = await getTest(id!);
+      console.log('[TestDetail] Test data received:', result);
+      return result;
+    },
     enabled: !!id,
   });
 
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
     queryKey: ['testMessages', id],
-    queryFn: () => getTestMessages(id!),
+    queryFn: async () => {
+      console.log('[TestDetail] Fetching test messages for id:', id);
+      const result = await getTestMessages(id!);
+      console.log('[TestDetail] Test messages received:', result);
+      return result;
+    },
     enabled: !!id,
     refetchInterval: test?.status === 'running' ? 1000 : false,
+    staleTime: 0, // Sempre considerar os dados como stale
+    cacheTime: 0  // Não manter cache
   });
 
   const { data: personas = [], isLoading: isLoadingPersonas } = useQuery({
     queryKey: ['personas', test?.personaIds],
     queryFn: async () => {
       if (!test?.personaIds?.length) {
-        console.log('No persona IDs available');
+        console.log('[TestDetail] No persona IDs available in test data');
         return [];
       }
-      console.log('Fetching personas for IDs:', test.personaIds);
-      const result = await getPersonasByIds(test.personaIds);
-      console.log('Fetched personas:', result);
-      return result;
+      console.log('[TestDetail] Fetching personas for IDs:', test.personaIds);
+      try {
+        const result = await getPersonasByIds(test.personaIds);
+        console.log('[TestDetail] Fetched personas:', result);
+        return result;
+      } catch (error) {
+        console.error('[TestDetail] Error fetching personas:', error);
+        throw error;
+      }
     },
     enabled: !!test?.personaIds?.length
   });
 
   // Atualizar thinkingPersonas quando o teste estiver em execução
   useEffect(() => {
+    console.log('[TestDetail] Checking test status for thinking personas:', {
+      testStatus: test?.status,
+      personas: personas.map(p => p.id)
+    });
+    
     if (test?.status === 'running') {
+      console.log('[TestDetail] Test status is running, setting thinking personas:', personas.map(p => p.id));
       // Adicionar todas as personas ao conjunto de "thinking"
       const newThinkingPersonas = new Set(personas.map(p => p.id));
       setThinkingPersonas(newThinkingPersonas);
+      
+      console.log('[TestDetail] New thinking personas set:', Array.from(newThinkingPersonas));
     } else {
+      console.log('[TestDetail] Test status is not running, clearing thinking personas');
       // Limpar o conjunto quando o teste não estiver em execução
       setThinkingPersonas(new Set());
     }
   }, [test?.status, personas]);
 
+  // Atualizar thinkingPersonas quando receber novas mensagens
+  useEffect(() => {
+    if (test?.status === 'running' && messages.length > 0) {
+      // Pegar o último timestamp de mensagem para cada persona
+      const latestMessageByPersona = new Map<string, Date>();
+      messages.forEach(message => {
+        if (!message.persona_id) return;
+        const currentLatest = latestMessageByPersona.get(message.persona_id);
+        const messageDate = new Date(message.created_at);
+        if (!currentLatest || messageDate > currentLatest) {
+          latestMessageByPersona.set(message.persona_id, messageDate);
+        }
+      });
+
+      // Se uma persona tem uma mensagem nos últimos 5 segundos, não deve estar "thinking"
+      const now = new Date();
+      const newThinkingPersonas = new Set(thinkingPersonas);
+      personas.forEach(persona => {
+        const latestMessage = latestMessageByPersona.get(persona.id);
+        if (latestMessage && (now.getTime() - latestMessage.getTime() < 5000)) {
+          newThinkingPersonas.delete(persona.id);
+        } else if (test.status === 'running') {
+          newThinkingPersonas.add(persona.id);
+        }
+      });
+
+      console.log('[TestDetail] Atualizando thinking personas:', {
+        old: Array.from(thinkingPersonas),
+        new: Array.from(newThinkingPersonas)
+      });
+      
+      setThinkingPersonas(newThinkingPersonas);
+    }
+  }, [test?.status, messages, personas]);
+
+  // Atualizar status das personas quando o teste estiver em execução
+  useEffect(() => {
+    if (test?.status === 'running') {
+      // Todas as personas começam como "running"
+      const newStatus = personas.map(p => ({
+        personaId: p.id,
+        status: 'running' as const
+      }));
+      setPersonaStatus(newStatus);
+    } else if (test?.status === 'completed') {
+      // Todas as personas são marcadas como "completed"
+      const newStatus = personas.map(p => ({
+        personaId: p.id,
+        status: 'completed' as const
+      }));
+      setPersonaStatus(newStatus);
+    } else {
+      // Limpar status quando o teste não estiver rodando
+      setPersonaStatus([]);
+    }
+  }, [test?.status, personas]);
+
+  // Atualizar status quando receber mensagens
+  useEffect(() => {
+    if (test?.status === 'running') {
+      setPersonaStatus(prev => {
+        const newStatus = [...prev];
+        messages.forEach(message => {
+          const statusIndex = newStatus.findIndex(s => s.personaId === message.persona_id);
+          if (statusIndex !== -1) {
+            // Se a persona está pensando, mantenha como running
+            newStatus[statusIndex].status = thinkingPersonas.has(message.persona_id) ? 'running' : 'completed';
+          }
+        });
+        return newStatus;
+      });
+    }
+  }, [messages, test?.status, thinkingPersonas]);
+
   // WebSocket setup
-  const { onTestMessage, onTestError, onTestUpdate } = useWebSocket(id || '');
+  const { onTestMessage, onTestError, onTestUpdate, onTestComplete } = useWebSocket(id || '');
 
   useEffect(() => {
     if (!id) return;
 
-    console.log('Setting up WebSocket listeners for test:', id);
+    console.log('[TestDetail] Setting up WebSocket listeners for test:', id);
 
     // Set up message handler
     const messageHandler = (message: TestMessageType | TestMessageType[]) => {
-      console.log('WebSocket message received:', message);
-      // Remover a persona da lista de "thinking" quando receber uma mensagem
+      console.log('[TestDetail] WebSocket message received:', message);
+      console.log('[TestDetail] Current thinkingPersonas:', Array.from(thinkingPersonas));
+      
+      // Adicionar mensagem ao estado local imediatamente
       if (!Array.isArray(message)) {
-        setThinkingPersonas(prev => {
-          const next = new Set(prev);
-          next.delete(message.personaId);
-          return next;
-        });
+        setLiveMessages(prev => [...prev, message]);
       }
       // Invalidar a query de mensagens para buscar a nova mensagem do banco
       queryClient.invalidateQueries(['testMessages', id]);
+      queryClient.refetchQueries(['testMessages', id]);
     };
 
     // Set up update handler
     const updateHandler = (update: any) => {
-      console.log('Received test update:', update);
+      console.log('[TestDetail] Received test update:', update);
       if (update.status === 'running') {
+        console.log('[TestDetail] Test status is running, invalidating queries');
         // Invalidate queries to refresh test data
-        queryClient.invalidateQueries({ queryKey: ['test', id] });
-        queryClient.invalidateQueries({ queryKey: ['testMessages', id] });
+        queryClient.invalidateQueries(['test', id]);
+        queryClient.refetchQueries(['test', id]);
       }
+    };
+
+    // Set up complete handler
+    const completeHandler = (results: any) => {
+      console.log('[TestDetail] Test completed:', results);
+      // Limpar thinking personas
+      console.log('[TestDetail] Clearing thinking personas');
+      setThinkingPersonas(new Set());
+      // Invalidar e forçar refetch das queries
+      console.log('[TestDetail] Invalidating and refetching queries after completion');
+      queryClient.invalidateQueries(['test', id]);
+      queryClient.invalidateQueries(['testMessages', id]);
+      queryClient.refetchQueries(['test', id]);
+      queryClient.refetchQueries(['testMessages', id]);
+      // Atualizar status das personas
+      setPersonaStatus(prev => prev.map(p => ({ ...p, status: 'completed' as const })));
+      // Mostrar toast de sucesso
+      toast({
+        title: 'Teste concluído',
+        description: 'O teste foi concluído com sucesso.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
     };
 
     // Set up error handler
     const errorHandler = (error: any) => {
+      console.log('[TestDetail] Received error:', error);
       handleError(error);
     };
 
+    console.log('[TestDetail] Registering WebSocket handlers');
     onTestMessage(messageHandler);
-    onTestUpdate(updateHandler);
     onTestError(errorHandler);
-  }, [id, onTestMessage, onTestUpdate, onTestError, handleError]);
+    onTestUpdate(updateHandler);
+    onTestComplete(completeHandler);
+
+    return () => {
+      console.log('[TestDetail] Cleaning up WebSocket handlers');
+    };
+  }, [id, onTestMessage, onTestUpdate, onTestError, onTestComplete, handleError, queryClient]);
 
   const deleteMessageMutation = useMutation({
     mutationFn: ({ testId, messageId }: { testId: string; messageId: string }) =>
       deleteTestMessage(testId, messageId),
-    onSuccess: () => {
+    onSuccess: (_, { messageId }) => {
+      // Atualiza o cache imediatamente removendo a mensagem
+      queryClient.setQueryData(['testMessages', id], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.filter((message: any) => message.id !== messageId);
+      });
+      
+      // Invalida a query para buscar dados atualizados do servidor
       queryClient.invalidateQueries(['testMessages', id]);
+      
       toast({
         title: t('test.messages.deleted'),
         status: 'success',
@@ -175,17 +320,23 @@ const TestDetail = () => {
   });
 
   const runMutation = useMutation({
-    mutationFn: () => runTest(id!),
+    mutationFn: () => {
+      console.log('Iniciando mutação de execução do teste');
+      return runTest(id!);
+    },
     onMutate: async () => {
+      console.log('onMutate - Preparando execução');
       toast.closeAll();
       const previousTest = queryClient.getQueryData(['test', id]);
       return { previousTest };
     },
     onError: (error) => {
+      console.error('Erro na mutação:', error);
       handleError(error);
       queryClient.setQueryData(['test', id], context?.previousTest);
     },
     onSuccess: () => {
+      console.log('Teste iniciado com sucesso');
       queryClient.invalidateQueries({ queryKey: ['test', id] });
       queryClient.invalidateQueries({ queryKey: ['testMessages', id] });
     }
@@ -218,66 +369,36 @@ const TestDetail = () => {
   });
 
   const handleDeleteMessage = (messageId: string) => {
-    if (!id) return;
+    if (!id || !messageId) {
+      console.error('ID do teste ou da mensagem não fornecido');
+      return;
+    }
+    console.log('Deletando mensagem:', { testId: id, messageId });
     deleteMessageMutation.mutate({ testId: id, messageId });
   };
 
   const renderMessages = () => {
     if (!personas.length) {
-      console.log('No personas available');
       return null;
     }
 
-    console.log('Rendering messages:', messages);
-    console.log('Available personas:', personas);
-    
     return (
-      <VStack spacing={4} align="stretch">
-        {messages.map((message, index) => {
-          console.log('Processing message for render:', message);
-          
-          // Encontrar a persona correspondente
-          const persona = personas.find(p => p.id === message.persona_id);
-          if (!persona) {
-            console.log('No persona found for message:', message);
-            console.log('Looking for persona_id:', message.persona_id);
-            console.log('Available persona IDs:', personas.map(p => p.id));
-            return null;
-          }
-
-          return (
-            <Box key={message.id || index} width="100%">
-              <TestMessage
-                message={message}
-                persona={{
-                  name: persona.name,
-                  avatar: persona.avatar,
-                  occupation: persona.occupation
-                }}
-                timestamp={new Date(message.timestamp)}
-                onDelete={handleDeleteMessage}
-              />
-            </Box>
-          );
+      <Box flex="1">
+        {console.log('[TestDetail] Rendering TestResponses:', {
+          testStatus: test?.status,
+          isRunning: test?.status === 'running',
+          personaCount: personas.length,
+          thinkingPersonasSize: thinkingPersonas.size
         })}
-        
-        {/* Indicadores de "pensando" */}
-        {test?.status === 'running' && personas.map(persona => {
-          if (!thinkingPersonas.has(persona.id)) return null;
-          
-          return (
-            <ThinkingMessage
-              key={`thinking-${persona.id}`}
-              persona={{
-                name: persona.name,
-                avatar: persona.avatar,
-                occupation: persona.occupation
-              }}
-              isVisible={thinkingPersonas.has(persona.id)}
-            />
-          );
-        })}
-      </VStack>
+        <TestResponses
+          messages={messages}
+          personas={personas}
+          personaStatus={personaStatus}
+          isRunning={test.status === 'running'}
+          thinkingPersonas={thinkingPersonas}
+          onDeleteMessage={handleDeleteMessage}
+        />
+      </Box>
     );
   };
 
@@ -404,67 +525,76 @@ const TestDetail = () => {
                     <>
                       <Divider />
                       <Text fontWeight="bold" color={textColor}>{t('test.details.targetAudience')}</Text>
-                      <Grid templateColumns="repeat(3, 1fr)" gap={4}>
-                        <Box>
-                          <Text fontSize="sm" color={textColor}>{t('test.details.ageRange')}</Text>
-                          <Text color={secondaryTextColor}>{test.targetAudience.ageRange}</Text>
-                        </Box>
-                        <Box>
-                          <Text fontSize="sm" color={textColor}>{t('test.details.location')}</Text>
-                          <Text color={secondaryTextColor}>{test.targetAudience.location}</Text>
-                        </Box>
-                        <Box>
-                          <Text fontSize="sm" color={textColor}>{t('test.details.income')}</Text>
-                          <Text color={secondaryTextColor}>{test.targetAudience.income}</Text>
-                        </Box>
-                      </Grid>
-                      
-                      <Grid templateColumns="repeat(3, 1fr)" gap={4} mt={4}>
-                        {test.targetAudience.interests?.length > 0 && (
+                      <VStack spacing={4} mt={4} align="stretch">
+                        <Grid templateColumns="repeat(3, 1fr)" gap={4}>
                           <Box>
-                            <Text fontSize="sm" color={textColor} mb={2}>{t('test.details.interests')}</Text>
-                            <Wrap spacing={2}>
-                              {test.targetAudience.interests.map((interest, index) => (
-                                <WrapItem key={index}>
-                                  <Tag size="md" borderRadius="full" variant="subtle" colorScheme="green">
-                                    {interest}
-                                  </Tag>
-                                </WrapItem>
-                              ))}
-                            </Wrap>
+                            <Text fontSize="sm" color={textColor} fontWeight="bold">{t('test.details.ageRange')}</Text>
+                            <Text color={secondaryTextColor}>{test.targetAudience.ageRange}</Text>
                           </Box>
-                        )}
+                          <Box>
+                            <Text fontSize="sm" color={textColor} fontWeight="bold">{t('test.details.location')}</Text>
+                            <Text color={secondaryTextColor}>{test.targetAudience.location}</Text>
+                          </Box>
+                          <Box>
+                            <Text fontSize="sm" color={textColor} fontWeight="bold">{t('test.details.income')}</Text>
+                            <Text color={secondaryTextColor}>{test.targetAudience.income}</Text>
+                          </Box>
+                        </Grid>
                         
-                        {test.targetAudience.painPoints?.length > 0 && (
-                          <Box>
-                            <Text fontSize="sm" color={textColor} mb={2}>{t('test.details.painPoints')}</Text>
-                            <Wrap spacing={2}>
-                              {test.targetAudience.painPoints.map((point, index) => (
-                                <WrapItem key={index}>
-                                  <Tag size="md" borderRadius="full" variant="subtle" colorScheme="red">
-                                    {point}
-                                  </Tag>
-                                </WrapItem>
-                              ))}
-                            </Wrap>
-                          </Box>
-                        )}
+                        <Box>
+                          <Text fontSize="sm" color={textColor} mb={2} fontWeight="bold">{t('test.details.interests')}</Text>
+                          <Wrap spacing={2}>
+                            {test.targetAudience.interests?.map((interest, index) => (
+                              <Tag 
+                                key={index} 
+                                size="md" 
+                                borderRadius="full" 
+                                variant="subtle" 
+                                colorScheme="green"
+                                fontWeight="normal"
+                              >
+                                {interest}
+                              </Tag>
+                            ))}
+                          </Wrap>
+                        </Box>
                         
-                        {test.targetAudience.needs?.length > 0 && (
-                          <Box>
-                            <Text fontSize="sm" color={textColor} mb={2}>{t('test.details.needs')}</Text>
-                            <Wrap spacing={2}>
-                              {test.targetAudience.needs.map((need, index) => (
-                                <WrapItem key={index}>
-                                  <Tag size="md" borderRadius="full" variant="subtle" colorScheme="purple">
-                                    {need}
-                                  </Tag>
-                                </WrapItem>
-                              ))}
-                            </Wrap>
-                          </Box>
-                        )}
-                      </Grid>
+                        <Box>
+                          <Text fontSize="sm" color={textColor} mb={2} fontWeight="bold">{t('test.details.painPoints')}</Text>
+                          <Wrap spacing={2}>
+                            {test.targetAudience.painPoints?.map((point, index) => (
+                              <Tag 
+                                key={index} 
+                                size="md" 
+                                borderRadius="full" 
+                                variant="subtle" 
+                                colorScheme="red"
+                                fontWeight="normal"
+                              >
+                                {point}
+                              </Tag>
+                            ))}
+                          </Wrap>
+                        </Box>
+                        
+                        <Box>
+                          <Text fontSize="sm" color={textColor} mb={2} fontWeight="bold">{t('test.details.needs')}</Text>
+                          <Wrap spacing={2}>
+                            {test.targetAudience.needs?.map((need, index) => (
+                              <Tag 
+                                key={index} 
+                                size="md" 
+                                borderRadius="full" 
+                                variant="subtle" 
+                                colorScheme="purple"
+                                fontWeight="normal"
+                              >
+                                {need}
+                              </Tag>
+                            ))}
+                          </Wrap>
+                        </Box>
+                      </VStack>
                     </>
                   )}
                 </VStack>

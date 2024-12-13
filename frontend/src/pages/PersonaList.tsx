@@ -103,17 +103,22 @@ const PersonaList = () => {
     <Box minH="100vh" w="100%" bg={useColorModeValue('gray.50', 'gray.900')}>
       <Container maxW="100%" px={4} py={8}>
         <VStack spacing={8} align="stretch" w="100%">
-          <Flex justify="space-between" align="center">
-            <Heading size="lg" color={textColor}>
-              {t('persona.title')}
-            </Heading>
+          <Flex justify="space-between" align="center" mb={6}>
+            <Box>
+              <Heading size="lg" color={textColor}>
+                {t('personas.list.title')}
+              </Heading>
+              <Text color={secondaryTextColor} mt={1}>
+                {t('personas.list.description')}
+              </Text>
+            </Box>
             <Button
               leftIcon={<FiPlus />}
-              onClick={() => navigate('/personas/new')}
+              onClick={() => navigate('/personas/create')}
               colorScheme="teal"
               size="md"
             >
-              {t('persona.actions.create')}
+              {t('personas.create.button')}
             </Button>
           </Flex>
 
@@ -134,7 +139,7 @@ const PersonaList = () => {
               description={t('persona.empty.description')}
               button={{
                 label: t('persona.empty.action'),
-                onClick: () => navigate('/personas/new'),
+                onClick: () => navigate('/personas/create'),
               }}
             />
           )}

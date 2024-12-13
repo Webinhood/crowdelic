@@ -1,8 +1,8 @@
 import express from 'express';
 import { Test } from '@crowdelic/shared';
-import { auth } from '../middleware/auth';
-import { pool } from '../config/database';
-import { TinyTroupeService } from '../services/tinytroupe_service';
+import { verifyToken } from '../middleware/auth';
+import { prisma } from '../config/database';
+import { TinyTroupeService } from '../services/tinytroupe_service'; 
 import { CacheService } from '../services/cache_service';
 import { OpenAI } from 'openai';
 import { CostsService } from '../services/costs_service';
@@ -84,11 +84,6 @@ const formatTestData = (test: any) => {
     needs: []
   });
 
-  const content = parseJsonField(test.content, {
-    type: 'text',
-    description: test.description || '',
-  });
-
   // Construir o objeto formatado
   const formattedTest = {
     id: test.id,
@@ -100,7 +95,6 @@ const formatTestData = (test: any) => {
     topics,
     personaIds,
     targetAudience,
-    content,
     results,
     status: test.status || 'pending',
     createdAt: test.created_at,
@@ -129,7 +123,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 const costsService = new CostsService();
-const tinyTroupeService = new TinyTroupeService(openai, costsService);
+const tinyTroupeService = new TinyTroupeService(openai, costsService, {
+  apiKey: process.env.OPENAI_API_KEY,
+  model: process.env.OPENAI_MODEL || 'gpt-4o-mini'
+});
 const cacheService = new CacheService();
 
 // Configure tinyTroupeService no app
@@ -159,66 +156,279 @@ const processTestWithDedup = async (testId: string, processFunction: () => Promi
   return testPromise;
 };
 
-// Get all tests
-router.get('/', auth, async (req, res) => {
+// Check if a test title already exists
+router.get('/check-title', verifyToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM tests WHERE user_id = $1',
-      [(req as any).user.id]
+    const { title, excludeId } = req.query;
+    
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const existingTest = await prisma.test.findFirst({
+      where: {
+        title: title.trim(),
+        user_id: (req as any).user.id,
+        deleted_at: null,
+        // Ignorar o próprio teste quando estiver editando
+        NOT: excludeId ? { id: excludeId as string } : undefined
+      }
+    });
+
+    res.json({ exists: !!existingTest });
+  } catch (err) {
+    console.error('Error checking test title:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
+// Get all tests
+router.get('/', verifyToken, async (req, res) => {
+  try {
+    console.log('[GET /tests] Buscando testes para o usuário:', (req as any).user.id);
+
+    // Primeiro, remover possíveis duplicatas no banco
+    await prisma.$executeRaw`
+      DELETE FROM tests a USING tests b
+      WHERE a.id > b.id 
+      AND a.title = b.title 
+      AND a.user_id = b.user_id 
+      AND a.deleted_at IS NULL
+      AND b.deleted_at IS NULL;
+    `;
+
+    const tests = await prisma.test.findMany({
+      where: {
+        user_id: (req as any).user.id,
+        deleted_at: null
+      },
+      orderBy: {
+        updated_at: 'desc'
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        objective: true,
+        settings: true,
+        topics: true,
+        persona_ids: true,
+        target_audience: true,
+        language: true,
+        status: true,
+        created_at: true,
+        updated_at: true
+      },
+      distinct: ['id'] // Garantir que não há duplicatas
+    });
+
+    console.log(`[GET /tests] Encontrados ${tests.length} testes`);
+
+    const formattedTests = tests.map(test => {
+      try {
+        return {
+          id: test.id,
+          title: test.title || '',
+          description: test.description || '',
+          objective: test.objective || '',
+          language: test.language || 'pt',
+          settings: typeof test.settings === 'string' ? JSON.parse(test.settings) : test.settings || {
+            maxIterations: 5,
+            responseFormat: 'detailed',
+            interactionStyle: 'natural'
+          },
+          topics: typeof test.topics === 'string' ? JSON.parse(test.topics) : test.topics || [],
+          personaIds: typeof test.persona_ids === 'string' ? JSON.parse(test.persona_ids) : test.persona_ids || [],
+          targetAudience: typeof test.target_audience === 'string' ? JSON.parse(test.target_audience) : test.target_audience || {
+            ageRange: '',
+            location: '',
+            income: '',
+            interests: [],
+            painPoints: [],
+            needs: []
+          },
+          status: test.status || 'pending',
+          createdAt: test.created_at,
+          updatedAt: test.updated_at
+        };
+      } catch (err) {
+        console.error('Error formatting test:', test.id, err);
+        return {
+          id: test.id,
+          title: test.title || '',
+          description: test.description || '',
+          objective: test.objective || '',
+          language: test.language || 'pt',
+          settings: {
+            maxIterations: 5,
+            responseFormat: 'detailed',
+            interactionStyle: 'natural'
+          },
+          topics: [],
+          personaIds: [],
+          targetAudience: {
+            ageRange: '',
+            location: '',
+            income: '',
+            interests: [],
+            painPoints: [],
+            needs: []
+          },
+          status: test.status || 'pending',
+          createdAt: test.created_at,
+          updatedAt: test.updated_at
+        };
+      }
+    });
+
+    // Remover possíveis duplicatas por ID
+    const uniqueTests = formattedTests.filter((test, index, self) =>
+      index === self.findIndex((t) => t.id === test.id)
     );
 
-    const tests = result.rows.map(formatTestData);
-    res.json(tests);
+    res.json(uniqueTests);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error getting tests:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
 // Get single test
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', verifyToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM tests WHERE id = $1 AND user_id = $2',
-      [req.params.id, (req as any).user.id]
-    );
+    // Special case for new tests
+    if (req.params.id === 'new') {
+      return res.json({
+        title: '',
+        description: '',
+        objective: '',
+        language: 'pt',
+        settings: {
+          maxIterations: 5,
+          responseFormat: 'detailed',
+          interactionStyle: 'natural',
+        },
+        topics: [],
+        personaIds: [],
+        targetAudience: {
+          ageRange: '',
+          location: '',
+          income: '',
+          interests: [],
+          painPoints: [],
+          needs: []
+        }
+      });
+    }
 
-    if (result.rows.length === 0) {
+    const test = await prisma.test.findFirst({
+      where: {
+        id: req.params.id,
+        user_id: (req as any).user.id,
+        deleted_at: null
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        objective: true,
+        settings: true,
+        topics: true,
+        persona_ids: true,
+        target_audience: true,
+        language: true,
+        status: true,
+        created_at: true,
+        updated_at: true
+      }
+    });
+
+    if (!test) {
       return res.status(404).json({ error: 'Test not found' });
     }
 
-    console.log('Raw test data:', {
-      persona_ids: result.rows[0].persona_ids,
-      type: typeof result.rows[0].persona_ids
-    });
+    try {
+      const formattedTest = {
+        id: test.id,
+        title: test.title || '',
+        description: test.description || '',
+        objective: test.objective || '',
+        language: test.language || 'pt',
+        settings: typeof test.settings === 'string' ? JSON.parse(test.settings) : test.settings || {
+          maxIterations: 5,
+          responseFormat: 'detailed',
+          interactionStyle: 'natural'
+        },
+        topics: typeof test.topics === 'string' ? JSON.parse(test.topics) : test.topics || [],
+        personaIds: typeof test.persona_ids === 'string' ? JSON.parse(test.persona_ids) : test.persona_ids || [],
+        targetAudience: typeof test.target_audience === 'string' ? JSON.parse(test.target_audience) : test.target_audience || {
+          ageRange: '',
+          location: '',
+          income: '',
+          interests: [],
+          painPoints: [],
+          needs: []
+        },
+        status: test.status || 'pending',
+        createdAt: test.created_at,
+        updatedAt: test.updated_at
+      };
 
-    const test = formatTestData(result.rows[0]);
-    
-    console.log('Formatted test data:', {
-      personaIds: test.personaIds,
-      type: typeof test.personaIds
-    });
-
-    res.json(test);
+      res.json(formattedTest);
+    } catch (err) {
+      console.error('Error formatting test:', test.id, err);
+      // Return a basic version of the test if there's an error
+      res.json({
+        id: test.id,
+        title: test.title || '',
+        description: test.description || '',
+        objective: test.objective || '',
+        language: test.language || 'pt',
+        settings: {
+          maxIterations: 5,
+          responseFormat: 'detailed',
+          interactionStyle: 'natural'
+        },
+        topics: [],
+        personaIds: [],
+        targetAudience: {
+          ageRange: '',
+          location: '',
+          income: '',
+          interests: [],
+          painPoints: [],
+          needs: []
+        },
+        status: test.status || 'pending',
+        createdAt: test.created_at,
+        updatedAt: test.updated_at
+      });
+    }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error getting test:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
 // Get test results
-router.get('/:id/results', auth, async (req, res) => {
+router.get('/:id/results', verifyToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT results FROM tests WHERE id = $1 AND user_id = $2',
-      [req.params.id, (req as any).user.id]
-    );
+    const result = await prisma.test.findFirst({
+      where: {
+        id: req.params.id,
+        user_id: (req as any).user.id,
+        deleted_at: null
+      },
+      select: {
+        results: true
+      }
+    });
 
-    if (result.rows.length === 0) {
+    if (!result) {
       return res.status(404).json({ error: 'Test not found' });
     }
 
-    const results = formatTestData(result.rows[0]).results;
+    const results = formatTestData(result).results;
     res.json(results);
   } catch (err) {
     console.error('Error getting test results:', err);
@@ -227,18 +437,62 @@ router.get('/:id/results', auth, async (req, res) => {
 });
 
 // Get live messages from a running test
-router.get('/:id/live-messages', auth, async (req, res) => {
+router.get('/:id/live-messages', verifyToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT messages FROM test_messages WHERE test_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1',
-      [req.params.id, (req as any).user.id]
-    );
+    const result = await prisma.testMessage.findFirst({
+      where: {
+        test_id: req.params.id,
+        user_id: (req as any).user.id
+      },
+      orderBy: {
+        created_at: 'desc'
+      }
+    });
 
-    const messages = result.rows[0]?.messages || [];
+    const messages = result?.messages || [];
     console.log('Live Messages Response:', messages); // Log para debug
     res.json(messages);
   } catch (err) {
     console.error('Error getting live messages:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
+// Get test messages
+router.get('/:id/messages', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  console.log(`[GET /tests/${id}/messages] Buscando mensagens do teste`);
+
+  try {
+    // Primeiro verificar se o teste existe e pertence ao usuário
+    const test = await prisma.test.findFirst({
+      where: {
+        id: id,
+        user_id: (req as any).user.id,
+        deleted_at: null
+      }
+    });
+
+    if (!test) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+
+    // Buscar resultados do teste
+    const results = await prisma.testResult.findMany({
+      where: {
+        test_id: id,
+        deleted_at: null
+      },
+      orderBy: {
+        created_at: 'asc'
+      }
+    });
+
+    console.log(`[GET /tests/${id}/messages] Encontrados ${results.length} resultados`);
+    console.log('Resultados:', results);
+    res.json(results);
+  } catch (err) {
+    console.error(`[GET /tests/${id}/messages] Erro:`, err);
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
@@ -258,14 +512,16 @@ async function addTestMessage(testId: string, userId: string, message: any) {
       : message.metadata;
 
     // Inserir na base de dados como JSONB para garantir que são armazenados como objetos
-    const result = await pool.query(
-      `INSERT INTO test_messages (test_id, user_id, content, metadata, created_at)
-       VALUES ($1, $2, $3::jsonb, $4::jsonb, NOW())
-       RETURNING id, content, metadata, created_at`,
-      [testId, userId, JSON.stringify(content), JSON.stringify(metadata)]
-    );
+    const result = await prisma.testMessage.create({
+      data: {
+        testId: testId,
+        userId: userId,
+        content: JSON.stringify(content),
+        metadata: JSON.stringify(metadata)
+      }
+    });
 
-    const savedMessage = result.rows[0];
+    const savedMessage = result;
     console.log('Message saved successfully:', savedMessage);
 
     // Emitir o evento WebSocket com os objetos já parseados
@@ -289,8 +545,9 @@ async function addTestMessage(testId: string, userId: string, message: any) {
 }
 
 // Create new test
-router.post('/', auth, async (req, res) => {
-  console.log('POST /tests - Request body:', JSON.stringify(req.body, null, 2));
+router.post('/', verifyToken, async (req, res) => {
+  console.log('[POST /tests] Iniciando criação de teste');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
   
   try {
     // Validar campos obrigatórios
@@ -300,14 +557,27 @@ router.post('/', auth, async (req, res) => {
       objective,
       settings,
       topics,
-      persona_ids,
+      personaIds,
       target_audience,
-      content = {
-        type: 'text',
-        description: description || ''
-      },
       language = 'pt'
     } = req.body;
+
+    // Verificar se já existe um teste com o mesmo título para este usuário
+    const existingTest = await prisma.test.findFirst({
+      where: {
+        title: title.trim(),
+        user_id: (req as any).user.id,
+        deleted_at: null
+      }
+    });
+
+    if (existingTest) {
+      console.log('[POST /tests] Teste com título duplicado encontrado:', existingTest.id);
+      return res.status(400).json({ 
+        error: 'Duplicate test title', 
+        message: 'Já existe um teste com este título. Por favor, escolha um título diferente.' 
+      });
+    }
 
     if (!title?.trim()) {
       return res.status(400).json({ error: 'Title is required' });
@@ -339,7 +609,7 @@ router.post('/', auth, async (req, res) => {
 
     // Garantir que os arrays sejam arrays válidos
     const validTopics = Array.isArray(topics) ? topics : [];
-    const validPersonaIds = Array.isArray(persona_ids) ? persona_ids : [];
+    const validPersonaIds = Array.isArray(personaIds) ? personaIds : [];
 
     // Garantir que settings tenha os valores padrão
     const validSettings = {
@@ -355,33 +625,27 @@ router.post('/', auth, async (req, res) => {
       objective,
       settings: validSettings,
       topics: validTopics,
-      persona_ids: validPersonaIds,
+      personaIds: validPersonaIds,
       target_audience,
-      content,
       language
     });
 
     try {
-      const result = await pool.query(
-        `INSERT INTO tests (
-          title, description, objective, settings, topics, 
-          persona_ids, target_audience, content, language, user_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-        [
-          title.trim(),
-          description.trim(),
-          objective.trim(),
-          JSON.stringify(validSettings),
-          JSON.stringify(validTopics),
-          JSON.stringify(validPersonaIds),
-          JSON.stringify(target_audience),
-          JSON.stringify(content),
+      const result = await prisma.test.create({
+        data: {
+          title: title.trim(),
+          description: description.trim(),
+          objective: objective.trim(),
+          settings: validSettings,
+          topics: validTopics,
+          persona_ids: validPersonaIds,
+          target_audience,
           language,
-          (req as any).user.id
-        ]
-      );
+          user_id: (req as any).user.id
+        }
+      });
 
-      const test = formatTestData(result.rows[0]);
+      const test = formatTestData(result);
       res.json(test);
     } catch (dbError) {
       console.error('Database error:', dbError);
@@ -400,7 +664,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Update test (full or partial update)
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
   try {
     const testId = req.params.id;
     console.log(`[PUT /tests/${testId}] Iniciando atualização do teste`);
@@ -411,7 +675,7 @@ router.put('/:id', auth, async (req, res) => {
       objective,
       settings,
       topics,
-      persona_ids,
+      personaIds,
       target_audience,
       language
     } = req.body;
@@ -441,25 +705,25 @@ router.put('/:id', auth, async (req, res) => {
 
     if (settings !== undefined) {
       updates.push(`settings = $${paramCount}::jsonb`);
-      values.push(JSON.stringify(settings));
+      values.push(settings);
       paramCount++;
     }
 
     if (topics !== undefined) {
       updates.push(`topics = $${paramCount}::text[]`);
-      values.push(Array.isArray(topics) ? topics : []);
+      values.push(topics);
       paramCount++;
     }
 
-    if (persona_ids !== undefined) {
+    if (personaIds !== undefined) {
       updates.push(`persona_ids = $${paramCount}::text[]`);
-      values.push(Array.isArray(persona_ids) ? persona_ids : []);
+      values.push(personaIds);
       paramCount++;
     }
 
     if (target_audience !== undefined) {
       updates.push(`target_audience = $${paramCount}::jsonb`);
-      values.push(JSON.stringify(target_audience));
+      values.push(target_audience);
       paramCount++;
     }
 
@@ -483,20 +747,31 @@ router.put('/:id', auth, async (req, res) => {
     `);
     console.log('Values:', values);
 
-    const result = await pool.query(`
-      UPDATE tests 
-      SET ${updates.join(', ')}
-      WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
-      RETURNING *
-    `, values);
+    const result = await prisma.test.update({
+      where: {
+        id: testId,
+        user_id: (req as any).user.id
+      },
+      data: {
+        title: title,
+        description: description,
+        objective: objective,
+        settings: settings,
+        topics: topics,
+        persona_ids: personaIds,
+        target_audience: target_audience,
+        language: language,
+        updated_at: new Date()
+      }
+    });
 
-    if (result.rows.length === 0) {
+    if (!result) {
       return res.status(404).json({ error: 'Test not found' });
     }
 
-    console.log('Resultado da atualização:', result.rows[0]);
+    console.log('Resultado da atualização:', result);
 
-    const updatedTest = formatTestData(result.rows[0]);
+    const updatedTest = formatTestData(result);
     console.log('Teste formatado:', updatedTest);
 
     res.json(updatedTest);
@@ -507,31 +782,40 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // Delete test
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
     console.log('Deleting test:', req.params.id);
     
     // Primeiro, verificar se o teste existe e pertence ao usuário
-    const checkResult = await pool.query(
-      'SELECT id FROM tests WHERE id = $1 AND user_id = $2',
-      [req.params.id, (req as any).user.id]
-    );
+    const checkResult = await prisma.test.findFirst({
+      where: {
+        id: req.params.id,
+        user_id: (req as any).user.id,
+        deleted_at: null
+      }
+    });
 
-    if (checkResult.rows.length === 0) {
+    if (!checkResult) {
       return res.status(404).json({ error: 'Test not found' });
     }
 
     // Deletar mensagens do teste primeiro (devido à chave estrangeira)
-    await pool.query(
-      'DELETE FROM test_messages WHERE test_id = $1',
-      [req.params.id]
-    );
+    await prisma.testMessage.deleteMany({
+      where: {
+        test_id: req.params.id
+      }
+    });
 
     // Agora deletar o teste
-    const result = await pool.query(
-      'DELETE FROM tests WHERE id = $1 AND user_id = $2 RETURNING id',
-      [req.params.id, (req as any).user.id]
-    );
+    const result = await prisma.test.update({
+      where: {
+        id: req.params.id,
+        user_id: (req as any).user.id
+      },
+      data: {
+        deleted_at: new Date()
+      }
+    });
 
     // Notificar clientes via WebSocket
     const wsService = req.app.get('wsService');
@@ -549,103 +833,192 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // Run test
-router.post('/:id/run', auth, async (req, res) => {
+router.post('/:id/run', verifyToken, async (req, res) => {
   const { id } = req.params;
+  console.log(`\n[POST /tests/${id}/run] ==================`);
+  console.log('1. Iniciando execução do teste');
   
   try {
     // Get test from database
-    const test = await pool.query(
-      'SELECT * FROM tests WHERE id = $1 AND user_id = $2',
-      [id, (req as any).user.id]
-    );
+    const test = await prisma.test.findFirst({
+      where: {
+        id,
+        user_id: (req as any).user.id,
+        deleted_at: null
+      }
+    });
 
-    if (test.rows.length === 0) {
+    console.log('2. Teste encontrado:', JSON.stringify(test, null, 2));
+
+    if (!test) {
+      console.log('❌ Teste não encontrado');
       return res.status(404).json({ error: 'Test not found' });
     }
 
+    // Buscar as personas do teste
+    const personas = await prisma.persona.findMany({
+      where: {
+        id: {
+          in: test.persona_ids
+        },
+        deleted_at: null
+      }
+    });
+
+    console.log('3. Personas encontradas:', JSON.stringify(personas, null, 2));
+
+    if (personas.length === 0) {
+      console.log('❌ Nenhuma persona encontrada');
+      throw new Error('No personas found for this test');
+    }
+
     // Update test status to running
-    await pool.query(
-      'UPDATE tests SET status = $1, started_at = NOW(), error = NULL WHERE id = $2',
-      ['running', id]
-    );
+    await prisma.test.update({
+      where: {
+        id,
+        user_id: (req as any).user.id
+      },
+      data: {
+        status: 'running',
+        started_at: new Date(),
+        error: null
+      }
+    });
+
+    console.log('4. Status do teste atualizado para running');
 
     // Notify WebSocket clients
     const wsService = req.app.get('wsService');
     if (wsService) {
+      console.log('5. Notificando clientes via WebSocket');
       wsService.notifyClients(id, 'testUpdate', {
         id,
         status: 'running',
         message: 'Test started'
       });
+    } else {
+      console.log('❌ WebSocket service não encontrado');
     }
 
+    // Retorna imediatamente para o cliente
+    res.json({ id, status: 'running', message: 'Test started' });
+    console.log('6. Resposta enviada ao cliente');
+
     // Run test asynchronously
-    const tinyTroupe = new TinyTroupeService(openai, costsService);
-    tinyTroupe.setEventCallback((event, data) => {
-      if (event === 'test_message') {
-        wsService?.sendTestMessage(id, data);
-      } else if (event === 'test_error') {
-        wsService?.sendTestError(id, data);
-      } else if (event === 'test_update') {
-        wsService?.notifyClients(id, 'testUpdate', data);
+    console.log('7. Iniciando TinyTroupeService');
+    const tinyTroupe = new TinyTroupeService(openai, new CostsService(), {
+      apiKey: process.env.OPENAI_API_KEY,
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini'
+    });
+
+    // Executa o teste em background
+    processTestWithDedup(id, async () => {
+      try {
+        console.log('8. Iniciando simulação do teste');
+        const result = await tinyTroupe.runTestSimulation(test, personas, (message) => {
+          console.log('9. Mensagem recebida da simulação:', message);
+          if (message.type === 'test_message') {
+            wsService?.sendTestMessage(id, message.data);
+          } else if (message.type === 'test_error') {
+            wsService?.sendTestError(id, message.data);
+          } else if (message.type === 'test_update') {
+            wsService?.notifyClients(id, 'testUpdate', message.data);
+          }
+        });
+
+        console.log('10. Simulação concluída, resultado:', JSON.stringify(result, null, 2));
+        
+        // Atualizar status do teste para concluído
+        await prisma.test.update({
+          where: { id },
+          data: {
+            status: 'completed',
+            completed_at: new Date()
+          }
+        });
+
+        // Criar resultados para cada persona
+        for (const persona of personas) {
+          const personaResult = result[persona.id] || result;
+          
+          await prisma.testResult.create({
+            data: {
+              test_id: id,
+              persona_id: persona.id,
+              first_impression: personaResult.first_impression || '',
+              benefits: personaResult.benefits || [],
+              concerns: personaResult.concerns || [],
+              decision_factors: personaResult.decision_factors || [],
+              suggestions: personaResult.suggestions || [],
+              tags: personaResult.tags || {},
+              personal_context: personaResult.personal_context || {},
+              target_audience_alignment: personaResult.target_audience_alignment || {},
+              metadata: personaResult.metadata || {}
+            }
+          });
+        }
+
+        // Notificar clientes que o teste foi concluído
+        wsService?.notifyClients(id, 'testUpdate', {
+          id,
+          status: 'completed',
+          message: 'Test completed successfully'
+        });
+
+      } catch (error) {
+        console.error('Error running test:', error);
+        
+        // Atualizar status do teste para erro
+        await prisma.test.update({
+          where: { id },
+          data: {
+            status: 'error',
+            error: error.message
+          }
+        });
+
+        // Notificar clientes do erro
+        wsService?.notifyClients(id, 'testUpdate', {
+          id,
+          status: 'error',
+          message: error.message
+        });
       }
     });
 
-    const result = await tinyTroupe.runTest(formatTestData(test.rows[0]));
-
-    // Update test status to completed
-    await pool.query(
-      'UPDATE tests SET status = $1, results = $2, error = NULL, completed_at = NOW() WHERE id = $3',
-      ['completed', JSON.stringify(result), id]
-    );
-
-    // Send completion notification
-    wsService?.sendTestComplete(id, result);
-
-    return res.json({ message: 'Test started successfully' });
   } catch (error: any) {
     console.error('Error running test:', error);
-
-    // Update test status to error
-    await pool.query(
-      'UPDATE tests SET status = $1, error = $2, completed_at = NOW() WHERE id = $3',
-      ['error', error.message, id]
-    );
-
-    // Notify WebSocket clients
-    const wsService = req.app.get('wsService');
-    if (wsService) {
-      wsService.notifyClients(id, 'testUpdate', {
-        id,
-        status: 'error',
-        message: error.message
-      });
-    }
-
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
 // Stop test
-router.post('/:id/stop', auth, async (req, res) => {
+router.post('/:id/stop', verifyToken, async (req, res) => {
   const { id } = req.params;
   const wsService = req.app.get('wsService');
 
   try {
     // Update test status to stopped
-    const updateResult = await pool.query(
-      'UPDATE tests SET status = $1, completed_at = NOW(), error = NULL WHERE id = $2 AND user_id = $3 RETURNING *',
-      ['stopped', id, (req as any).user.id]
-    );
+    const updateResult = await prisma.test.update({
+      where: {
+        id,
+        user_id: (req as any).user.id
+      },
+      data: {
+        status: 'stopped',
+        completed_at: new Date(),
+        error: null
+      }
+    });
 
-    if (updateResult.rows.length === 0) {
+    if (!updateResult) {
       return res.status(404).json({
         error: 'Test not found',
         code: 'TEST_NOT_FOUND'
       });
     }
 
-    const test = formatTestData(updateResult.rows[0]);
+    const test = formatTestData(updateResult);
 
     // Notify clients via WebSocket
     if (wsService) {
@@ -670,36 +1043,97 @@ router.post('/:id/stop', auth, async (req, res) => {
 });
 
 // Delete specific message from a test
-router.delete('/:testId/messages/:messageId', auth, async (req, res) => {
+router.delete('/:testId/messages/:messageId', verifyToken, async (req, res) => {
   const { testId, messageId } = req.params;
   console.log(`Deleting message ${messageId} from test ${testId}`);
 
   try {
-    // Primeiro verifica se o teste pertence ao usuário
-    const testResult = await pool.query(
-      'SELECT id FROM tests WHERE id = $1 AND user_id = $2',
-      [testId, (req as any).user.id]
-    );
+    // Primeiro verifica se a mensagem existe e pertence ao teste
+    console.log('Buscando mensagem:', { messageId });
+    const message = await prisma.testResult.findUnique({
+      where: {
+        id: messageId
+      }
+    });
 
-    if (testResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Test not found' });
-    }
+    console.log('Mensagem encontrada:', message);
 
-    // Deleta a mensagem
-    const result = await pool.query(
-      'DELETE FROM test_messages WHERE id = $1 AND test_id = $2 RETURNING *',
-      [messageId, testId]
-    );
-
-    if (result.rows.length === 0) {
+    if (!message) {
+      console.error('Message not found:', messageId);
       return res.status(404).json({ error: 'Message not found' });
     }
 
-    console.log('Message deleted successfully');
-    res.json({ message: 'Message deleted successfully' });
-  } catch (err) {
-    console.error('Error deleting message:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    if (message.test_id !== testId) {
+      console.error('Message does not belong to test:', { messageId, testId, messageTestId: message.test_id });
+      return res.status(403).json({ error: 'Message does not belong to this test' });
+    }
+
+    // Se encontrou a mensagem e ela pertence ao teste, deleta permanentemente
+    console.log('Deletando mensagem permanentemente');
+    const deletedMessage = await prisma.testResult.delete({
+      where: {
+        id: messageId
+      }
+    });
+
+    console.log('Mensagem deletada:', deletedMessage);
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting test message:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    return res.status(500).json({ error: 'Failed to delete test message' });
+  }
+});
+
+// Delete a test message
+router.delete('/:testId/messages/:messageId', verifyToken, async (req, res) => {
+  const { testId, messageId } = req.params;
+  console.log(`[DELETE /tests/${testId}/messages/${messageId}] Deletando mensagem`);
+  
+  try {
+    // Primeiro verifica se a mensagem existe
+    console.log('Buscando mensagem:', { messageId });
+    const message = await prisma.testResult.findUnique({
+      where: {
+        id: messageId
+      }
+    });
+
+    console.log('Mensagem encontrada:', message);
+
+    if (!message) {
+      console.error('Message not found:', messageId);
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    if (message.test_id !== testId) {
+      console.error('Message does not belong to test:', { messageId, testId, messageTestId: message.test_id });
+      return res.status(403).json({ error: 'Message does not belong to this test' });
+    }
+
+    // Se encontrou a mensagem, faz o soft delete
+    console.log('Atualizando mensagem com soft delete');
+    const updatedMessage = await prisma.testResult.update({
+      where: {
+        id: messageId
+      },
+      data: {
+        deletedAt: new Date()
+      }
+    });
+
+    console.log('Mensagem atualizada:', updatedMessage);
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting test message:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    return res.status(500).json({ error: 'Failed to delete test message' });
   }
 });
 

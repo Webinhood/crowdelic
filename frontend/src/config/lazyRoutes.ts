@@ -25,3 +25,4 @@ export const TestCreate = lazy(() => import('../pages/TestCreate'));
 export const TestEdit = lazy(() => import('../pages/TestEdit'));
 export const TestDetail = lazy(() => import('../pages/TestDetail'));
 export const Costs = lazy(() => import('../pages/Costs'));
+export const UserManagement = lazy(() => import('../pages/UserManagement'));

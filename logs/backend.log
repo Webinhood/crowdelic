@@ -1,0 +1,11 @@
+
+> @crowdelic/backend@1.0.0 dev
+> ts-node-dev --respawn --transpile-only src/index.ts
+
+[INFO] 01:08:58 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.7.2)
+(node:72788) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:72788) ExperimentalWarning: CommonJS module /Users/macbookpro/CascadeProjects/crowdelic/backend/src/index.ts is loading ES Module /Users/macbookpro/CascadeProjects/crowdelic/node_modules/get-port/index.js using require().
+Support for loading ES Module in require() is an experimental feature and might change at any time
+Port 3000 was not available, using port 57234 instead
+Server is running on port 57234

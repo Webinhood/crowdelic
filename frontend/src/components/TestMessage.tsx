@@ -4,7 +4,6 @@ import {
   VStack,
   HStack,
   Text,
-  Avatar,
   Badge,
   Divider,
   List,
@@ -34,6 +33,15 @@ interface TestMessageProps {
     test_id: string;
     persona_id: string;
     first_impression: string;
+    benefits: string[];
+    concerns: string[];
+    decision_factors: string[];
+    suggestions: string[];
+    tags: {
+      negative: string[];
+      positive: string[];
+      opportunity: string[];
+    };
     personal_context: {
       digitalComfort: string;
       routineAlignment: string;
@@ -41,21 +49,12 @@ interface TestMessageProps {
       familyConsideration: string;
       financialPerspective: string;
     };
-    benefits: string[];
-    concerns: string[];
-    decision_factors: string[];
-    suggestions: string[];
     target_audience_alignment: {
       ageMatch: string;
       locationMatch: string;
       incomeMatch: string;
       interestOverlap: string;
       painPointRelevance: string;
-    };
-    tags: {
-      negative: string[];
-      positive: string[];
-      opportunity: string[];
     };
     metadata: {
       sentiment: number;
@@ -83,64 +82,65 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
   const sectionBgColor = useColorModeValue('gray.50', 'gray.700');
   const { t } = useTranslation();
 
-  console.log('=== TestMessage Debug Logs ===');
-  console.log('1. Raw message:', message);
-
   // Garantir que temos um objeto de conteúdo válido
   const content = React.useMemo(() => {
-    console.log('2. Processing message content');
-    
     if (!message) {
-      console.log('No message found');
+      console.error('TestMessage: Mensagem inválida recebida:', message);
       return null;
     }
 
-    // O conteúdo já deve ser um objeto
-    console.log('3. Content:', message);
+    // Validar campos obrigatórios
+    if (!message.persona_id || !message.test_id) {
+      console.error('TestMessage: Campos obrigatórios ausentes:', message);
+      return null;
+    }
+
     return message;
   }, [message]);
 
   // Processar metadata separadamente
   const metadata = React.useMemo(() => {
-    console.log('5. Processing metadata');
-    
-    if (!content.metadata) {
-      console.log('No metadata found');
+    if (!content?.metadata) {
+      console.debug('TestMessage: Sem metadata disponível');
       return {};
     }
-
-    // Metadata já deve ser um objeto
-    console.log('6. Metadata:', content.metadata);
     return content.metadata;
   }, [content]);
 
   if (!content) {
-    console.log('8. No valid content to display');
     return (
       <Box p={4} bg={bgColor} borderRadius="lg" borderWidth="1px" borderColor={borderColor}>
-        <Text color="red.500">Error: Unable to display message content</Text>
-        <Text as="pre" fontSize="sm" mt={2}>
-          Raw content: {JSON.stringify(message, null, 2)}
-        </Text>
+        <Text color="red.500">{t('test.message.error.invalidContent')}</Text>
       </Box>
     );
   }
 
-  // Extrair campos do conteúdo
+  // Extrair dados relevantes
   const {
     first_impression,
-    personal_context,
     benefits = [],
     concerns = [],
     decision_factors = [],
     suggestions = [],
+    tags = {},
+    personal_context = {},
     target_audience_alignment = {},
-    tags = {
-      negative: [],
-      positive: [],
-      opportunity: []
-    }
-  } = content;
+  } = message || {};
+
+  // Remover console.logs de debug que não são mais necessários
+  const calculateOverallScore = () => {
+    if (!metadata) return 0;
+    
+    const {
+      sentiment = 0,
+      confidence = 0,
+      valueProposition = 0,
+      personalRelevance = 0,
+      implementationFeasibility = 0
+    } = metadata;
+
+    return (sentiment + confidence + valueProposition + personalRelevance + implementationFeasibility) / 5;
+  };
 
   const renderStars = (rating: number = 5) => {
     const normalizedRating = Math.max(1, Math.min(5, Math.ceil(rating / 2)));
@@ -166,18 +166,6 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
         </Badge>
       </WrapItem>
     ));
-  };
-
-  const calculateOverallScore = () => {
-    const scores = [
-      metadata.sentiment,
-      metadata.confidence,
-      metadata.personalRelevance,
-      metadata.valueProposition,
-      metadata.implementationFeasibility
-    ].filter(Boolean);
-    
-    return scores.length === 0 ? 0 : Math.max(1, Math.min(10, Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)));
   };
 
   const renderMetric = (label: string, value: number) => (
@@ -232,14 +220,23 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
     >
       {/* Header */}
       <HStack spacing={4} mb={6}>
-        <Avatar name={persona.name} src={persona.avatar} />
         <Box flex="1">
-          <Text fontWeight="bold">{persona.name}</Text>
-          <Text fontSize="sm" color="gray.500">{persona.occupation}</Text>
+          {timestamp && (
+            <Text fontSize="sm" color="gray.500">
+              {new Intl.DateTimeFormat('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }).format(timestamp)}
+            </Text>
+          )}
         </Box>
         <HStack spacing={1}>
           {renderStars(calculateOverallScore())}
-          {content.id && onDelete && (
+          {message.id && onDelete && (
             <Tooltip label={t('test.message.deleteTooltip')} placement="top">
               <IconButton
                 aria-label={t('test.message.deleteButton')}
@@ -249,7 +246,7 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
                 colorScheme="red"
                 ml={2}
                 borderWidth="1px"
-                onClick={() => handleDelete(content.id!)}
+                onClick={() => onDelete(message.id!)}
               />
             </Tooltip>
           )}
@@ -257,10 +254,55 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
       </HStack>
 
       {/* First Impression */}
-      {first_impression && (
-        <Box bg={sectionBgColor} p={4} borderRadius="md" mb={6}>
-          <Text fontSize="lg" fontWeight="medium" mb={2}>{t('test.message.firstImpression')}</Text>
-          <Text>{first_impression}</Text>
+      {message.first_impression && message.first_impression.length > 0 && (
+        <Box mb={4} p={4} bg={sectionBgColor} borderRadius="md">
+          <Text fontWeight="bold" mb={2}>{t('Primeira Impressão')}</Text>
+          <Text>{message.first_impression}</Text>
+        </Box>
+      )}
+
+      {/* Decision Factors */}
+      {message.decision_factors && message.decision_factors.length > 0 && (
+        <Box mb={4} p={4} bg={sectionBgColor} borderRadius="md">
+          <Text fontWeight="bold" mb={2}>{t('Fatores de Decisão')}</Text>
+          <List spacing={2}>
+            {message.decision_factors.map((factor, index) => (
+              <ListItem key={index} display="flex" alignItems="center">
+                <ListIcon as={FiCheckCircle} color="green.500" />
+                <Text>{factor}</Text>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+
+      {/* Personal Context */}
+      {message.personal_context && Object.keys(message.personal_context).length > 0 && (
+        <Box mb={4} p={4} bg={sectionBgColor} borderRadius="md">
+          <Text fontWeight="bold" mb={2}>{t('Contexto Pessoal')}</Text>
+          <SimpleGrid columns={1} spacing={2}>
+            {Object.entries(message.personal_context).map(([key, value]) => (
+              <Box key={key}>
+                <Text fontWeight="medium">{t(key)}</Text>
+                <Text>{value}</Text>
+              </Box>
+            ))}
+          </SimpleGrid>
+        </Box>
+      )}
+
+      {/* Target Audience Alignment */}
+      {message.target_audience_alignment && Object.keys(message.target_audience_alignment).length > 0 && (
+        <Box mb={4} p={4} bg={sectionBgColor} borderRadius="md">
+          <Text fontWeight="bold" mb={2}>{t('Alinhamento com Público-Alvo')}</Text>
+          <SimpleGrid columns={1} spacing={2}>
+            {Object.entries(message.target_audience_alignment).map(([key, value]) => (
+              <Box key={key}>
+                <Text fontWeight="medium">{t(key)}</Text>
+                <Text>{value}</Text>
+              </Box>
+            ))}
+          </SimpleGrid>
         </Box>
       )}
 
@@ -298,23 +340,6 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
         </VStack>
       )}
 
-      {/* Decision Factors */}
-      {decision_factors?.length > 0 && (
-        <VStack spacing={4} align="stretch" mb={6}>
-          <Text fontSize="lg" fontWeight="medium">{t('test.message.decisionFactors')}</Text>
-          <List spacing={3}>
-            {decision_factors.map((factor, index) => (
-              <ListItem key={index}>
-                <HStack align="start">
-                  <ListIcon as={FiHelpCircle} color="blue.500" mt={1} />
-                  <Text>{factor}</Text>
-                </HStack>
-              </ListItem>
-            ))}
-          </List>
-        </VStack>
-      )}
-
       {/* Suggestions */}
       {suggestions?.length > 0 && (
         <VStack spacing={4} align="stretch" mb={6}>
@@ -330,54 +355,6 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
             ))}
           </List>
         </VStack>
-      )}
-
-      {/* Personal Context */}
-      {personal_context && (
-        <Box mb={6}>
-          <Text fontSize="lg" fontWeight="medium" mb={4}>{t('test.personalContext.title')}</Text>
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-            {Object.entries(personal_context).map(([key, value]) => (
-              <Box
-                key={key}
-                p={4}
-                borderRadius="md"
-                borderWidth="1px"
-                borderColor={borderColor}
-                bg={bgColor}
-              >
-                <Text fontWeight="medium" mb={2}>
-                  {t(`test.personalContext.${key}`)}
-                </Text>
-                <Text fontSize="sm">{value}</Text>
-              </Box>
-            ))}
-          </SimpleGrid>
-        </Box>
-      )}
-
-      {/* Target Audience Alignment */}
-      {target_audience_alignment && (
-        <Box mb={6}>
-          <Text fontSize="lg" fontWeight="medium" mb={4}>{t('test.message.targetAudience.title')}</Text>
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-            {Object.entries(target_audience_alignment).map(([key, value]) => (
-              <Box
-                key={key}
-                p={4}
-                borderRadius="md"
-                borderWidth="1px"
-                borderColor={borderColor}
-                bg={bgColor}
-              >
-                <Text fontWeight="medium" mb={2}>
-                  {t(`test.message.targetAudience.${key}`)}
-                </Text>
-                <Text fontSize="sm">{value}</Text>
-              </Box>
-            ))}
-          </SimpleGrid>
-        </Box>
       )}
 
       {/* Tags */}

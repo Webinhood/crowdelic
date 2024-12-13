@@ -29,6 +29,15 @@ const defaultValues: CreateTestData = {
   },
   topics: [],
   personaIds: [],
+  targetAudience: {
+    ageRange: '',
+    location: '',
+    income: '',
+    interests: [],
+    painPoints: [],
+    needs: []
+  },
+  language: 'pt'
 };
 
 const TestCreate = () => {
@@ -44,7 +53,20 @@ const TestCreate = () => {
     mutationFn: async (data: CreateTestData) => {
       console.log('Mutation starting with data:', data);
       try {
-        const result = await createTest(data);
+        // Remover campos desnecessários e formatar dados
+        const formattedData = {
+          title: data.title,
+          description: data.description,
+          objective: data.objective,
+          settings: data.settings,
+          topics: data.topics,
+          personaIds: data.personaIds,
+          target_audience: data.targetAudience,
+          language: data.language
+        };
+        
+        console.log('Formatted data:', formattedData);
+        const result = await createTest(formattedData);
         console.log('Mutation completed successfully:', result);
         return result;
       } catch (error: any) {

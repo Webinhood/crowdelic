@@ -125,7 +125,7 @@ const Dashboard = () => {
             <HStack spacing={4}>
               <Button
                 leftIcon={<FiPlus />}
-                onClick={() => navigate('/personas/new')}
+                onClick={() => navigate('/personas/create')}
                 variant="outline"
                 colorScheme="teal"
               >
@@ -133,7 +133,7 @@ const Dashboard = () => {
               </Button>
               <Button
                 leftIcon={<FiPlus />}
-                onClick={() => navigate('/tests/new')}
+                onClick={() => navigate('/tests/create')}
                 colorScheme="teal"
               >
                 {t('dashboard.create.test')}
@@ -203,7 +203,7 @@ const Dashboard = () => {
                   description={t('dashboard.recentTests.createFirst')}
                   button={{
                     label: t('dashboard.create.test'),
-                    onClick: () => navigate('/tests/new'),
+                    onClick: () => navigate('/tests/create'),
                   }}
                 />
               ) : (

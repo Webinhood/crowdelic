@@ -4,7 +4,7 @@ export interface Persona {
   id: string;
   name: string;
   description: string;
-  background?: string;
+  background_story: string;
   goals: string[];
   interests: string[];
   traits: string[];
@@ -22,10 +22,10 @@ export interface Persona {
   spending_habits: string;
   decision_factors: string;
   personality_traits: string;
-  background_story: string;
   created_at: string;
   updated_at: string;
   user_id: string;
+  is_public?: boolean;
 }
 
 export interface CreatePersonaData {
@@ -70,14 +70,22 @@ export const getPersonasById = async (id: string): Promise<Persona> => {
 };
 
 export const getPersonasByIds = async (ids: string[]): Promise<Persona[]> => {
-  const params = new URLSearchParams();
-  ids.forEach(id => params.append('ids', id));
-  
-  const response = await api.get('/personas/batch', { params });
-  if (!response.data) {
-    throw new Error('Failed to fetch personas');
+  if (!ids || ids.length === 0) {
+    return [];
   }
-  return response.data;
+
+  try {
+    const idsString = ids.join(',');
+    const response = await api.get(`/personas/batch?ids=${idsString}`);
+    if (!response.data) {
+      console.warn('No personas found for ids:', ids);
+      return [];
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching personas:', error);
+    return [];
+  }
 };
 
 export const createPersona = async (data: CreatePersonaData): Promise<Persona> => {

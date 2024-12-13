@@ -228,6 +228,98 @@ crowdelic/
 ├── start_dev.sh                # Development startup script
 └── TinyTroupe_README.md        # TinyTroupe documentation
 
+## Autenticação e Autorização
+
+### Configuração Inicial
+1. Crie um usuário administrador:
+```bash
+cd backend
+npm run create-admin -- --email=seu@email.com --password=suasenha
+```
+
+2. Configure as variáveis de ambiente de autenticação:
+```env
+JWT_SECRET=seu_jwt_secret_aqui
+JWT_EXPIRATION=24h
+```
+
+### Níveis de Acesso
+- **Admin**: Acesso total ao sistema
+- **User**: Acesso às próprias personas e testes
+- **Guest**: Acesso apenas a personas públicas
+
+### Endpoints de Autenticação
+- `POST /api/auth/login`: Login com email e senha
+- `POST /api/auth/register`: Registro de novo usuário
+- `POST /api/auth/logout`: Logout
+- `GET /api/auth/me`: Informações do usuário atual
+
+## Troubleshooting
+
+### Problemas Comuns
+
+1. **Erro "too many clients already"**
+   ```bash
+   # Limpe as conexões do PostgreSQL
+   docker-compose down
+   docker-compose up -d postgres redis
+   ```
+
+2. **Problemas de Autenticação**
+   - Verifique se o JWT_SECRET está configurado no .env
+   - Limpe os cookies do navegador
+   - Verifique se o token está sendo enviado nos headers
+
+3. **Erro de Porta em Uso**
+   - O sistema tentará automaticamente usar uma porta alternativa
+   - Você pode especificar uma porta manualmente no .env:
+     ```env
+     PORT=3001
+     ```
+
+4. **Problemas com o Redis**
+   - Verifique se o Redis está rodando:
+     ```bash
+     docker-compose ps
+     ```
+   - Reinicie o Redis se necessário:
+     ```bash
+     docker-compose restart redis
+     ```
+
+### Logs e Debugging
+
+1. **Backend Logs**
+   ```bash
+   # Ver logs em tempo real
+   cd backend
+   npm run logs
+   ```
+
+2. **Database Logs**
+   ```bash
+   # Ver logs do PostgreSQL
+   docker-compose logs postgres
+   ```
+
+3. **Frontend Dev Tools**
+   - Use React Developer Tools para debugging
+   - Verifique o console do navegador para erros
+   - Use o Network tab para verificar chamadas de API
+
+### Manutenção
+
+1. **Limpeza do Banco**
+   ```bash
+   cd backend
+   npm run db:reset # Reseta o banco (cuidado: apaga todos os dados)
+   ```
+
+2. **Atualização de Dependências**
+   ```bash
+   npm run update-deps # Atualiza todas as dependências
+   ```
+
 ## Pontos de Atenção
 
 ### 1. Integração OpenAI
@@ -292,16 +384,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
-## Problemas Conhecidos e Soluções
-
-1. **Erro 400 no formato JSON da OpenAI**
-   - Garantir que o `response_format` esteja correto
-   - Usar `{ type: "json_object" }` para o modelo mini
-
-2. **Erro de persona_ids nulo**
-   - Verificar se os IDs das personas estão sendo passados corretamente no frontend
-   - Validar payload antes de salvar no banco
 
 ## Próximos Passos Sugeridos
 

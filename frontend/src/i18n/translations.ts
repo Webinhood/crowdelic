@@ -59,7 +59,7 @@ export const translations = {
             years: 'years old'
           },
           targetAudience: {
-            label: 'Target Audience',
+            title: 'Target Audience',
             ageRange: {
               label: 'Age Range',
               description: 'Age of the target audience',
@@ -89,6 +89,38 @@ export const translations = {
               label: 'Needs',
               description: 'What your target audience needs to solve',
               placeholder: 'Add a need (Ex: automate tasks, reduce costs)'
+            },
+            form: {
+              ageRange: {
+                label: 'Age Range',
+                description: 'Target audience age range',
+                placeholder: 'E.g. 25-35 years'
+              },
+              location: {
+                label: 'Location',
+                description: 'Target audience location',
+                placeholder: 'E.g. New York, USA'
+              },
+              income: {
+                label: 'Income',
+                description: 'Target audience income range',
+                placeholder: 'E.g. Medium to high'
+              },
+              interests: {
+                label: 'Interests',
+                description: 'Main interests of the target audience',
+                placeholder: 'E.g. Digital Marketing, SEO'
+              },
+              painPoints: {
+                label: 'Pain Points',
+                description: 'Main difficulties and challenges',
+                placeholder: 'E.g. Search engine visibility'
+              },
+              needs: {
+                label: 'Needs',
+                description: 'Main needs to be addressed',
+                placeholder: 'E.g. Improve Google ranking'
+              }
             }
           },
           settings: {
@@ -143,12 +175,12 @@ export const translations = {
         thinking: {
           states: {
             analyzing: 'Analyzing content...',
-            reflecting: 'Reflecting on context...',
+            reflecting: 'Reflecting on the message...',
             organizing: 'Organizing thoughts...',
             elaborating: 'Elaborating response...',
-            reviewing: 'Reviewing arguments...',
+            reviewing: 'Reviewing details...',
             writing: 'Writing response...',
-            finishing: 'Finishing...'
+            finishing: 'Finishing up...'
           }
         },
         details: {
@@ -245,7 +277,17 @@ export const translations = {
             label: 'Active Personas',
             help: 'Test participants'
           }
-        }
+        },
+        search_personas: 'Search personas...',
+        sort: {
+          label: 'Sort by',
+          time: 'Most recent',
+          name: 'Name'
+        },
+        messages: {
+          count: 'messages',
+          noResults: 'No messages found'
+        },
       },
       persona: {
         title: 'Personas',
@@ -396,6 +438,24 @@ export const translations = {
           goals: 'Goals',
           interests: 'Interests',
           location: 'Location and Context'
+        }
+      },
+      tests: {
+        list: {
+          title: 'Tests',
+          description: 'Manage your content tests'
+        },
+        create: {
+          button: 'New Test'
+        }
+      },
+      personas: {
+        list: {
+          title: 'Personas',
+          description: 'Manage your test personas'
+        },
+        create: {
+          button: 'New Persona'
         }
       },
       costs: {
@@ -573,37 +633,13 @@ export const translations = {
             years: 'anos'
           },
           targetAudience: {
-            label: 'Público-alvo',
-            ageRange: {
-              label: 'Faixa tária',
-              description: 'Idade do público-alvo',
-              placeholder: 'Ex: 25-35 anos'
-            },
-            location: {
-              label: 'Localização',
-              description: 'Região geográfica do público',
-              placeholder: 'Ex: São Paulo, Brasil'
-            },
-            income: {
-              label: 'Renda',
-              description: 'Faixa de renda do público',
-              placeholder: 'Ex: R$ 5.000 - R$ 10.000'
-            },
-            interests: {
-              label: 'Interesses',
-              description: 'O que seu público gosta e valoriza',
-              placeholder: 'Adicionar interesse (Ex: tecnologia, inovação)'
-            },
-            painPoints: {
-              label: 'Pontos de dor',
-              description: 'Principais problemas e desafios',
-              placeholder: 'Adicionar ponto de dor (Ex: falta de tempo, complexidade)'
-            },
-            needs: {
-              label: 'Necessidades',
-              description: 'O que seu público precisa resolver',
-              placeholder: 'Adicionar necessidade (Ex: automatizar tarefas, reduzir custos)'
-            }
+            title: 'Público-Alvo',
+            ageRange: 'Faixa etária',
+            location: 'Localização',
+            income: 'Renda',
+            interests: 'Interesses',
+            painPoints: 'Pontos de dor',
+            needs: 'Necessidades'
           },
           settings: {
             maxIterations: {
@@ -656,12 +692,12 @@ export const translations = {
         },
         thinking: {
           states: {
-            analyzing: 'Analisando o conteúdo...',
-            reflecting: 'Refletindo sobre o contexto...',
-            organizing: 'Organizando minhas ideias...',
-            elaborating: 'Elaborando minha resposta...',
-            reviewing: 'Revisando meus argumentos...',
-            writing: 'Escrevendo minha resposta...',
+            analyzing: 'Analisando conteúdo...',
+            reflecting: 'Refletindo sobre a mensagem...',
+            organizing: 'Organizando pensamentos...',
+            elaborating: 'Elaborando resposta...',
+            reviewing: 'Revisando detalhes...',
+            writing: 'Escrevendo resposta...',
             finishing: 'Finalizando...'
           }
         },
@@ -759,7 +795,17 @@ export const translations = {
             label: 'Personas ativas',
             help: 'Participantes no teste'
           }
-        }
+        },
+        search_personas: 'Buscar personas...',
+        sort: {
+          label: 'Ordenar por',
+          time: 'Mais recentes',
+          name: 'Nome'
+        },
+        messages: {
+          count: 'mensagens',
+          noResults: 'Nenhuma mensagem encontrada'
+        },
       },
       persona: {
         title: 'Personas',
@@ -911,6 +957,24 @@ export const translations = {
           goals: 'Objetivos',
           interests: 'Interesses',
           location: 'Localização e contexto'
+        }
+      },
+      tests: {
+        list: {
+          title: 'Testes',
+          description: 'Gerencie seus testes de conteúdo'
+        },
+        create: {
+          button: 'Novo Teste'
+        }
+      },
+      personas: {
+        list: {
+          title: 'Personas',
+          description: 'Gerencie suas personas de teste'
+        },
+        create: {
+          button: 'Nova Persona'
         }
       },
       costs: {

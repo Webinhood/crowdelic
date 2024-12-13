@@ -11,7 +11,12 @@ from mock import TinyPerson, TinyWorld
 
 def setup_config(config_json: str) -> Dict[str, Any]:
     config = json.loads(config_json)
-    os.environ["OPENAI_API_KEY"] = config["api_key"]
+    api_key = config.get("api_key", "").strip()
+    if not api_key:
+        raise ValueError("API key não fornecida ou inválida")
+    
+    print("[DEBUG] Configurando API key (primeiros 4 caracteres: {}...)".format(api_key[:4]), file=sys.stderr)
+    os.environ["OPENAI_API_KEY"] = api_key
     return config
 
 def create_tiny_person(persona_json: str, config: Dict[str, Any]) -> TinyPerson:
@@ -29,14 +34,21 @@ def create_tiny_person(persona_json: str, config: Dict[str, Any]) -> TinyPerson:
 
 def run_simulation(test_json: str, personas_json: str, config: Dict[str, Any]) -> Dict[str, Any]:
     """Run a simulation with the given test and personas."""
+    print("[DEBUG] Iniciando simulação", file=sys.stderr)
+    
     test = json.loads(test_json)
+    print(f"[DEBUG] Teste carregado: {test.get('id', 'unknown')}", file=sys.stderr)
+    
     personas = personas_json if isinstance(personas_json, list) else json.loads(personas_json)
+    print(f"[DEBUG] {len(personas)} personas carregadas", file=sys.stderr)
     
     tiny_people = []
     results = []
     iteration_count = 0
     scenarios = test.get("scenarios", [])
     total_iterations = len(scenarios)
+    
+    print(f"[DEBUG] Total de cenários: {total_iterations}", file=sys.stderr)
     
     # Initialize progress tracking
     progress = {
@@ -48,20 +60,35 @@ def run_simulation(test_json: str, personas_json: str, config: Dict[str, Any]) -
         "total_interactions": total_iterations * len(personas)
     }
     
+    print(f"[DEBUG] Progresso inicial configurado: {json.dumps(progress)}", file=sys.stderr)
+    
+    # Enviar progresso inicial
+    print("__RESULT_START__" + json.dumps({
+        "type": "test_update",
+        "data": progress
+    }) + "__RESULT_END__")
+    sys.stdout.flush()
+
     # Create tiny people instances
     for persona_id in personas:
-        persona = {
-            "name": f"Persona_{persona_id}",
-            "age": 30,
-            "occupation": "Unknown",
-            "interests": [],
-            "traits": [],
-            "skills": [],
-            "background": "",
-            "goals": []
-        }
-        tiny_person = create_tiny_person(json.dumps(persona), config)
-        tiny_people.append(tiny_person)
+        print(f"[DEBUG] Criando TinyPerson para persona {persona_id}", file=sys.stderr)
+        try:
+            persona = {
+                "name": f"Persona_{persona_id}",
+                "age": 30,
+                "occupation": "Unknown",
+                "interests": [],
+                "traits": [],
+                "skills": [],
+                "background": "",
+                "goals": []
+            }
+            tiny_person = create_tiny_person(json.dumps(persona), config)
+            tiny_people.append(tiny_person)
+            print(f"[DEBUG] TinyPerson criada com sucesso: {tiny_person.name}", file=sys.stderr)
+        except Exception as e:
+            print(f"[ERROR] Erro ao criar TinyPerson: {str(e)}", file=sys.stderr)
+            raise
     
     progress["status"] = "running"
     # socketio.emit('testProgress', {"type": "progress", "data": progress}, room=test["test_id"])
@@ -102,10 +129,8 @@ def run_simulation(test_json: str, personas_json: str, config: Dict[str, Any]) -
         "progress": progress
     }
     
-    # Print the final result in a way that Node.js can parse
-    print(f"__RESULT_START__{json.dumps(final_result)}__RESULT_END__")
-    sys.stdout.flush()
-    
+    # Retornar resultado final
+    print("__RESULT_START__" + json.dumps(final_result) + "__RESULT_END__")
     return final_result
 
 def save_intermediate_results(test_id: str, result: Dict[str, Any]):
@@ -130,7 +155,7 @@ def save_intermediate_results(test_id: str, result: Dict[str, Any]):
         with open(result_file, 'w') as f:
             json.dump(existing_results, f)
     except Exception as e:
-        print(f"Error saving intermediate results: {str(e)}")
+        print(f"Error saving intermediate results: {str(e)}", file=sys.stderr)
 
 def format_response(response, format_type):
     """Format the response according to the specified format type."""

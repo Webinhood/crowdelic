@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  password  String
+  role      String    @default("user")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("users")
+}
+
+model Persona {
+  id               String    @id @default(uuid())
+  name             String
+  description      String
+  age              Int
+  occupation       String
+  income           String
+  location         String
+  family_status    String
+  education        String
+  daily_routine    String
+  challenges       String
+  goals            String[]
+  frustrations     String
+  interests        String[]
+  habits           String
+  digital_skills   String
+  spending_habits  String
+  decision_factors String
+  personality_traits String
+  background_story String
+  traits           String[]
+  user_id         String
+  is_public       Boolean   @default(false)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  @@map("personas")
+}
+
+model Test {
+  id               String    @id @default(uuid())
+  title            String
+  description      String
+  objective        String
+  language         String    @default("pt")
+  status          String    @default("pending")
+  settings        Json
+  topics          String[]
+  persona_ids     String[]
+  target_audience Json
+  user_id         String
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  completed_at    DateTime?
+  deleted_at      DateTime?
+  started_at      DateTime?
+  error           String?
+  current_iteration Int      @default(0)
+
+  @@map("tests")
+}
+
+model TestResult {
+  id                      String   @id @default(uuid())
+  test_id                 String
+  persona_id              String
+  first_impression        String
+  benefits                String[]
+  concerns                String[]
+  decision_factors        String[]
+  suggestions             String[]
+  tags                    Json
+  personal_context        Json
+  target_audience_alignment Json
+  metadata                Json
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+  deleted_at             DateTime?
+
+  @@map("test_results")
+}
+
+model TestMessage {
+  id         String   @id @default(uuid())
+  testId     String   @map("test_id")
+  content    String
+  role       String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  @@map("test_messages")
+}
+
+model UsageLog {
+  id                String   @id @default(uuid()) @map("id")
+  timestamp         DateTime
+  test_id          String?
+  user_id          String?
+  model            String
+  prompt_tokens    Int
+  completion_tokens Int
+  total_tokens     Int
+  cost             Float
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@map("usage_logs")
+  @@index([test_id])
+  @@index([user_id])
+  @@index([timestamp])
+}

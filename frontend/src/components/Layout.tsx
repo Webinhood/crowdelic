@@ -9,7 +9,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { FiMenu } from 'react-icons/fi';
-import { FeedbackProvider } from '../context/FeedbackContext';
+import { FeedbackProvider } from '../contexts/FeedbackContext';
 import { Sidebar } from './Sidebar';
 import LanguageSelector from './LanguageSelector';
 

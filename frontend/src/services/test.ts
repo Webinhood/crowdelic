@@ -186,14 +186,14 @@ export const deleteTest = async (id: string): Promise<void> => {
   await api.delete(`/tests/${id}`);
 };
 
-export const runTest = async (id: string, language: string = 'pt-BR'): Promise<Test> => {
-  console.log('API runTest called with:', { id, language });
+export async function runTest(id: string, language: string = 'pt-BR'): Promise<Test> {
+  console.log('Iniciando teste:', id);
   try {
     const response = await api.post(`/tests/${id}/run`, { language });
-    console.log('API runTest response:', response.data);
+    console.log('Resposta do servidor:', response.data);
     return response.data;
   } catch (error) {
-    console.error('API runTest error:', error);
+    console.error('Erro ao executar teste:', error);
     throw error;
   }
 };
@@ -235,3 +235,13 @@ export const deleteTestMessage = async (testId: string, messageId: string): Prom
     throw error;
   }
 };
+
+export async function checkTitleExists(title: string, excludeId?: string): Promise<boolean> {
+  try {
+    const response = await api.get(`/tests/check-title?title=${encodeURIComponent(title)}${excludeId ? `&excludeId=${excludeId}` : ''}`);
+    return response.data.exists;
+  } catch (error) {
+    console.error('Error checking title:', error);
+    throw error;
+  }
+}

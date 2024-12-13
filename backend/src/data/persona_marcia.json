@@ -1,0 +1,39 @@
+{
+  "name": "Márcia Regina Santos",
+  "description": "Coordenadora de Marketing e Desenvolvimento em uma ONG de grande porte",
+  "age": 40,
+  "occupation": "Coordenadora de Marketing",
+  "income": "R$ 12.000 - R$ 15.000 mensais",
+  "location": "São Paulo, SP",
+  "family_status": "Casada, 2 filhos (12 e 8 anos)",
+  "education": "MBA em Marketing Digital, Pós em Gestão de Projetos Sociais",
+  "daily_routine": "Acorda às 6h, leva filhos à escola, trabalho das 8h às 18h com reuniões frequentes, academia 3x semana, jantar em família",
+  "challenges": "Equilibrar demandas profissionais crescentes com qualidade de vida, pressão por resultados mensuráveis em projetos sociais",
+  "goals": [
+    "Expandir o alcance digital da organização",
+    "Implementar métricas mais eficientes de ROI social",
+    "Desenvolver novas parcerias estratégicas",
+    "Automatizar processos de marketing"
+  ],
+  "frustrations": "Dificuldade em encontrar fornecedores que entendam o terceiro setor, pressão autoimposta por perfeição, tempo limitado para análise profunda de dados",
+  "interests": [
+    "Inovação social",
+    "Marketing digital",
+    "Sustentabilidade",
+    "Literatura de negócios",
+    "Yoga e meditação"
+  ],
+  "habits": "Leitora ávida de newsletters de marketing, pratica yoga, prefere reuniões objetivas pela manhã, organiza semana no domingo à noite",
+  "digital_skills": "Avançada em ferramentas de marketing digital, familiaridade com CRMs e análise de dados",
+  "spending_habits": "Prioriza investimentos com ROI comprovado, analítica na tomada de decisões financeiras, valoriza qualidade e eficiência",
+  "decision_factors": "Dados concretos, casos de sucesso comprovados, alinhamento com valores da organização, escalabilidade das soluções",
+  "personality_traits": "Determinada, analítica, perfeccionista, empática, estratégica",
+  "background_story": "Começou na publicidade corporativa, mas migrou para o terceiro setor há 8 anos buscando propósito. Construiu sua reputação implementando estratégias digitais inovadoras em projetos sociais",
+  "traits": [
+    "Perfeccionista",
+    "Analítica",
+    "Estratégica",
+    "Empática",
+    "Resiliente"
+  ]
+}

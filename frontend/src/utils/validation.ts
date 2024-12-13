@@ -1,4 +1,5 @@
 import * as Yup from 'yup';
+import { checkTitleExists } from '../services/test';
 
 export const LoginSchema = Yup.object().shape({
   email: Yup.string()
@@ -99,31 +100,72 @@ export const PersonaSchema = Yup.object().shape({
 });
 
 export const TestSchema = Yup.object().shape({
-  title: Yup.string().required('O título é obrigatório'),
-  description: Yup.string().required('A descrição é obrigatória'),
-  objective: Yup.string().required('O objetivo é obrigatório'),
-  language: Yup.string()
-    .matches(/^[a-z]{2}(-[A-Z]{2})?$/, 'Código de idioma inválido')
-    .required('Idioma é obrigatório'),
+  title: Yup.string()
+    .min(3, 'Título deve ter pelo menos 3 caracteres')
+    .max(100, 'Título não pode exceder 100 caracteres')
+    .required('Título é obrigatório')
+    .test('unique-title', 'Este título já está em uso', async function(value) {
+      if (!value) return true; // Skip validation if empty
+
+      try {
+        // Pegar o ID do teste atual do contexto do formulário
+        const testId = this.parent.id;
+        const exists = await checkTitleExists(value, testId);
+        return !exists;
+      } catch (error) {
+        console.error('Error checking title:', error);
+        return true; // Em caso de erro, permitir continuar
+      }
+    }),
+  description: Yup.string()
+    .min(10, 'Descrição deve ter pelo menos 10 caracteres')
+    .max(1000, 'Descrição não pode exceder 1000 caracteres')
+    .required('Descrição é obrigatória'),
+  objective: Yup.string()
+    .min(10, 'Objetivo deve ter pelo menos 10 caracteres')
+    .max(500, 'Objetivo não pode exceder 500 caracteres')
+    .required('Objetivo é obrigatório'),
   settings: Yup.object().shape({
-    maxIterations: Yup.number().required('O número máximo de iterações é obrigatório'),
-    responseFormat: Yup.string().required('O formato de resposta é obrigatório'),
-    interactionStyle: Yup.string().required('O estilo de interação é obrigatório'),
-  }),
-  topics: Yup.array().of(Yup.string()),
-  personaIds: Yup.array().of(Yup.string()),
+    maxIterations: Yup.number()
+      .min(1, 'Mínimo de 1 iteração')
+      .max(10, 'Máximo de 10 iterações')
+      .required('Número de iterações é obrigatório'),
+    responseFormat: Yup.string()
+      .oneOf(['detailed', 'summary'], 'Formato de resposta inválido')
+      .required('Formato de resposta é obrigatório'),
+    interactionStyle: Yup.string()
+      .oneOf(['natural', 'formal'], 'Estilo de interação inválido')
+      .required('Estilo de interação é obrigatório')
+  }).required(),
+  topics: Yup.array()
+    .of(Yup.string())
+    .min(1, 'Pelo menos um tópico é necessário')
+    .required('Tópicos são obrigatórios'),
+  personaIds: Yup.array()
+    .of(Yup.string())
+    .min(1, 'Pelo menos uma persona é necessária')
+    .required('Personas são obrigatórias'),
   targetAudience: Yup.object().shape({
-    ageRange: Yup.string().required('A faixa etária é obrigatória'),
-    location: Yup.string().required('A localização é obrigatória'),
-    income: Yup.string().required('A renda é obrigatória'),
-    interests: Yup.array().of(Yup.string()).min(1, 'Adicione pelo menos um interesse'),
-    painPoints: Yup.array().of(Yup.string()).min(1, 'Adicione pelo menos um ponto de dor'),
-    needs: Yup.array().of(Yup.string()).min(1, 'Adicione pelo menos uma necessidade'),
-  }),
-  scenarios: Yup.array().of(
-    Yup.object().shape({
-      description: Yup.string().required('Scenario description is required'),
-      expectedOutcome: Yup.string()
-    })
-  )
+    ageRange: Yup.string()
+      .required('Faixa etária é obrigatória'),
+    location: Yup.string()
+      .required('Localização é obrigatória'),
+    income: Yup.string()
+      .required('Renda é obrigatória'),
+    interests: Yup.array()
+      .of(Yup.string())
+      .min(1, 'Pelo menos um interesse é necessário')
+      .required('Interesses são obrigatórios'),
+    painPoints: Yup.array()
+      .of(Yup.string())
+      .min(1, 'Pelo menos um ponto de dor é necessário')
+      .required('Pontos de dor são obrigatórios'),
+    needs: Yup.array()
+      .of(Yup.string())
+      .min(1, 'Pelo menos uma necessidade é necessária')
+      .required('Necessidades são obrigatórias')
+  }).required(),
+  language: Yup.string()
+    .oneOf(['pt', 'en'], 'Idioma inválido')
+    .required('Idioma é obrigatório')
 });

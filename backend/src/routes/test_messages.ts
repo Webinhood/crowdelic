@@ -1,24 +1,26 @@
 import { Router } from 'express';
-import { pool } from '../db';
-import { auth } from '../middleware/auth';
+import { prisma } from '../config/database';
+import { verifyToken } from '../middleware/auth';
 import logger from '../utils/logger';
 
 const router = Router();
 
 // Get messages for a test
-router.get('/:testId/messages', auth, async (req, res) => {
+router.get('/:testId/messages', verifyToken, async (req, res) => {
   const { testId } = req.params;
   
   try {
-    const result = await pool.query(
-      `SELECT * FROM test_messages 
-       WHERE test_id = $1 
-       AND deleted_at IS NULL 
-       ORDER BY created_at ASC`,
-      [testId]
-    );
+    const messages = await prisma.testResult.findMany({
+      where: {
+        test_id: testId,
+        deleted_at: null
+      },
+      orderBy: {
+        created_at: 'asc'
+      }
+    });
 
-    return res.json(result.rows);
+    return res.json(messages);
   } catch (error) {
     logger.error('Error getting test messages:', error);
     return res.status(500).json({ error: 'Failed to get test messages' });
@@ -26,17 +28,19 @@ router.get('/:testId/messages', auth, async (req, res) => {
 });
 
 // Delete a message
-router.delete('/:testId/messages/:messageId', auth, async (req, res) => {
+router.delete('/:testId/messages/:messageId', verifyToken, async (req, res) => {
   const { testId, messageId } = req.params;
   
   try {
-    // Soft delete
-    await pool.query(
-      `UPDATE test_messages 
-       SET deleted_at = CURRENT_TIMESTAMP 
-       WHERE id = $1 AND test_id = $2`,
-      [messageId, testId]
-    );
+    await prisma.testResult.update({
+      where: {
+        id: messageId,
+        test_id: testId
+      },
+      data: {
+        deleted_at: new Date()
+      }
+    });
 
     return res.status(204).send();
   } catch (error) {

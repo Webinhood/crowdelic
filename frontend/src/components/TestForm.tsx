@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import {
   Box,
   Button,
@@ -75,9 +75,36 @@ const TestForm: React.FC<TestFormProps> = ({
 }) => {
   const [newTopic, setNewTopic] = React.useState('');
   const [isPersonaModalOpen, setIsPersonaModalOpen] = React.useState(false);
+  const [isTitleChecking, setIsTitleChecking] = React.useState(false);
   const toast = useToast();
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  // Referência para o timeout do debounce
+  const titleCheckTimeout = React.useRef<NodeJS.Timeout>();
+
+  // Função para verificar o título com debounce
+  const checkTitle = useCallback(async (title: string, setFieldError: any, values: any) => {
+    if (titleCheckTimeout.current) {
+      clearTimeout(titleCheckTimeout.current);
+    }
+
+    if (!title?.trim()) return;
+
+    titleCheckTimeout.current = setTimeout(async () => {
+      setIsTitleChecking(true);
+      try {
+        const exists = await checkTitleExists(title, values.id);
+        if (exists) {
+          setFieldError('title', 'Este título já está em uso');
+        }
+      } catch (error) {
+        console.error('Error checking title:', error);
+      } finally {
+        setIsTitleChecking(false);
+      }
+    }, 500);
+  }, []);
 
   // Garantir que os valores iniciais sejam corretamente mesclados
   const formInitialValues = useMemo(() => {
@@ -112,6 +139,44 @@ const TestForm: React.FC<TestFormProps> = ({
     console.log('Valores do formulário:', JSON.stringify(values, null, 2));
     
     try {
+      // Validar campos obrigatórios antes de enviar
+      if (!values.title) {
+        console.error('Título é obrigatório');
+        throw new Error(t('test.form.validation.required.title'));
+      }
+      if (!values.description) {
+        console.error('Descrição é obrigatória');
+        throw new Error(t('test.form.validation.required.description'));
+      }
+      if (!values.objective) {
+        console.error('Objetivo é obrigatório');
+        throw new Error(t('test.form.validation.required.objective'));
+      }
+      if (!values.targetAudience?.ageRange) {
+        console.error('Faixa etária é obrigatória');
+        throw new Error(t('test.form.validation.required.ageRange'));
+      }
+      if (!values.targetAudience?.location) {
+        console.error('Localização é obrigatória');
+        throw new Error(t('test.form.validation.required.location'));
+      }
+      if (!values.targetAudience?.income) {
+        console.error('Renda é obrigatória');
+        throw new Error(t('test.form.validation.required.income'));
+      }
+      if (!values.targetAudience?.interests?.length) {
+        console.error('Pelo menos um interesse é obrigatório');
+        throw new Error(t('test.form.validation.required.interests'));
+      }
+      if (!values.targetAudience?.painPoints?.length) {
+        console.error('Pelo menos um ponto de dor é obrigatório');
+        throw new Error(t('test.form.validation.required.painPoints'));
+      }
+      if (!values.targetAudience?.needs?.length) {
+        console.error('Pelo menos uma necessidade é obrigatória');
+        throw new Error(t('test.form.validation.required.needs'));
+      }
+
       // Garantir que todos os campos obrigatórios estejam presentes e no formato correto
       const submissionData = {
         ...values,
@@ -135,17 +200,6 @@ const TestForm: React.FC<TestFormProps> = ({
           interactionStyle: values.settings?.interactionStyle || 'natural'
         }
       };
-
-      // Validar campos obrigatórios antes de enviar
-      if (!submissionData.title) throw new Error(t('test.form.validation.required.title'));
-      if (!submissionData.description) throw new Error(t('test.form.validation.required.description'));
-      if (!submissionData.objective) throw new Error(t('test.form.validation.required.objective'));
-      if (!submissionData.targetAudience.ageRange) throw new Error(t('test.form.validation.required.ageRange'));
-      if (!submissionData.targetAudience.location) throw new Error(t('test.form.validation.required.location'));
-      if (!submissionData.targetAudience.income) throw new Error(t('test.form.validation.required.income'));
-      if (!submissionData.targetAudience.interests.length) throw new Error(t('test.form.validation.required.interests'));
-      if (!submissionData.targetAudience.painPoints.length) throw new Error(t('test.form.validation.required.painPoints'));
-      if (!submissionData.targetAudience.needs.length) throw new Error(t('test.form.validation.required.needs'));
 
       console.log('Dados limpos para submissão:', JSON.stringify(submissionData, null, 2));
       
@@ -186,429 +240,493 @@ const TestForm: React.FC<TestFormProps> = ({
         validateOnBlur={true}
         enableReinitialize={true}
       >
-        {({ values, setFieldValue, errors, touched, handleSubmit }) => (
-          <Form>
-            <VStack spacing={6} align="stretch" bg={useColorModeValue('white', 'gray.900')} p={8} borderRadius="xl">
-              {/* Seção Principal */}
-              <Box>
-                <HStack mb={6} align="center">
-                  <Icon as={FiPlus} color={useColorModeValue('teal.500', 'teal.300')} boxSize={5} />
-                  <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.basic')}</Text>
-                </HStack>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                  <FormInput
-                    name="title"
-                    label={t('test.form.title.label')}
-                    description={t('test.form.title.description')}
-                    placeholder={t('test.form.title.placeholder')}
-                  />
-                  <FormInput
-                    name="objective"
-                    label={t('test.form.objective.label')}
-                    description={t('test.form.objective.description')}
-                    placeholder={t('test.form.objective.placeholder')}
-                  />
-                </SimpleGrid>
-                <Box mt={6}>
-                  <FormInput
-                    name="description"
-                    label={t('test.form.description.label')}
-                    description={t('test.form.description.description')}
-                    placeholder={t('test.form.description.placeholder')}
-                    as="textarea"
-                    rows={12}
-                    sx={{
-                      minHeight: '300px',
-                      resize: 'vertical'
-                    }}
-                  />
+        {({ values, setFieldValue, errors, touched, handleSubmit }) => {
+          console.log('Form errors:', JSON.stringify(errors, null, 2));
+          console.log('Form touched:', JSON.stringify(touched, null, 2));
+          return (
+            <Form>
+              <VStack spacing={6} align="stretch" bg={useColorModeValue('white', 'gray.900')} p={8} borderRadius="xl">
+                {/* Seção Principal */}
+                <Box>
+                  <HStack mb={6} align="center">
+                    <Icon as={FiPlus} color={useColorModeValue('teal.500', 'teal.300')} boxSize={5} />
+                    <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.basic')}</Text>
+                  </HStack>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                    <FormInput
+                      name="title"
+                      label={t('test.form.title.label')}
+                      description={t('test.form.title.description')}
+                      placeholder={t('test.form.title.placeholder')}
+                      onChange={(e) => {
+                        const field = e.target;
+                        field.setCustomValidity('');
+                        checkTitle(e.target.value, setFieldValue, values);
+                      }}
+                    />
+                    <FormInput
+                      name="objective"
+                      label={t('test.form.objective.label')}
+                      description={t('test.form.objective.description')}
+                      placeholder={t('test.form.objective.placeholder')}
+                    />
+                  </SimpleGrid>
+                  <Box mt={6}>
+                    <FormInput
+                      name="description"
+                      label={t('test.form.description.label')}
+                      description={t('test.form.description.description')}
+                      placeholder={t('test.form.description.placeholder')}
+                      as="textarea"
+                      rows={12}
+                      sx={{
+                        minHeight: '300px',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </Box>
                 </Box>
-              </Box>
 
-              <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
+                <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
 
-              {/* Seção de Configurações */}
-              <Box>
-                <HStack mb={6} align="center">
-                  <Icon as={FiCheck} color={useColorModeValue('green.500', 'green.300')} boxSize={5} />
-                  <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.settings')}</Text>
-                </HStack>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                  <FormInput
-                    name="settings.maxIterations"
-                    label={t('test.form.settings.maxIterations.label')}
-                    description={t('test.form.settings.maxIterations.description')}
-                    placeholder={t('test.form.settings.maxIterations.placeholder')}
-                    type="number"
-                  />
-                  <FormInput
-                    name="settings.responseFormat"
-                    label={t('test.form.settings.responseFormat.label')}
-                    description={t('test.form.settings.responseFormat.description')}
-                    placeholder={t('test.form.settings.responseFormat.placeholder')}
-                  />
-                </SimpleGrid>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mt={6}>
-                  <FormInput
-                    name="settings.interactionStyle"
-                    label={t('test.form.settings.interactionStyle.label')}
-                    description={t('test.form.settings.interactionStyle.description')}
-                    placeholder={t('test.form.settings.interactionStyle.placeholder')}
-                  />
-                </SimpleGrid>
-              </Box>
-
-              <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
-
-              {/* Seção de Tópicos */}
-              <Box>
-                <HStack mb={6} align="center">
-                  <Icon as={FiTarget} color={useColorModeValue('purple.500', 'purple.300')} boxSize={5} />
-                  <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.topics')}</Text>
-                </HStack>
-                <FormLabel color={useColorModeValue('gray.800', 'white')}>{t('test.form.topics.label')}</FormLabel>
-                <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
-                  {t('test.form.topics.description')}
-                </Text>
-                <HStack>
-                  <FormInput
-                    name="newTopic"
-                    value={newTopic}
-                    onChange={(e) => setNewTopic(e.target.value)}
-                    placeholder={t('test.form.topics.placeholder')}
-                  />
-                  <IconButton
-                    aria-label="Add topic"
-                    icon={<Icon as={FiPlus} />}
-                    onClick={() => {
-                      if (newTopic.trim()) {
-                        setFieldValue('topics', [...values.topics, newTopic.trim()]);
-                        setNewTopic('');
-                      }
-                    }}
-                  />
-                </HStack>
-                <Wrap mt={2}>
-                  {values.topics.map((topic, index) => (
-                    <WrapItem key={index}>
-                      <Tag size="md" variant="subtle" colorScheme="blue">
-                        <TagLabel>{topic}</TagLabel>
-                        <TagCloseButton
-                          onClick={() =>
-                            setFieldValue(
-                              'topics',
-                              values.topics.filter((_, i) => i !== index)
-                            )
-                          }
-                        />
-                      </Tag>
-                    </WrapItem>
-                  ))}
-                </Wrap>
-              </Box>
-
-              <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
-
-              {/* Seção de Personas */}
-              <Box>
-                <HStack mb={6} align="center">
-                  <Icon as={FiUsers} color={useColorModeValue('blue.500', 'blue.300')} boxSize={5} />
-                  <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.personas')}</Text>
-                </HStack>
-                <FormLabel color={useColorModeValue('gray.800', 'white')}>{t('test.form.personas.label')}</FormLabel>
-                <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
-                  {t('test.form.personas.description')}
-                </Text>
-                <Button
-                  leftIcon={<Icon as={FiUsers} />}
-                  onClick={() => setIsPersonaModalOpen(true)}
-                  variant="outline"
-                  w="100%"
-                >
-                  {t('test.form.personas.select')}
-                </Button>
-                <Wrap mt={2}>
-                  {values.personaIds.map((personaId) => {
-                    const persona = personas.find((p) => p.id === personaId);
-                    return (
-                      persona && (
-                        <WrapItem key={personaId}>
-                          <Tag size="md" variant="subtle" colorScheme="blue">
-                            <TagLabel>{persona.name}</TagLabel>
-                            <TagCloseButton
-                              onClick={() =>
-                                setFieldValue(
-                                  'personaIds',
-                                  values.personaIds.filter((id) => id !== personaId)
-                                )
-                              }
-                            />
-                          </Tag>
-                        </WrapItem>
-                      )
-                    );
-                  })}
-                </Wrap>
-              </Box>
-
-              <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
-
-              {/* Seção de Público Alvo */}
-              <Box>
-                <HStack mb={6} align="center">
-                  <Icon as={FiTarget} color={useColorModeValue('yellow.500', 'yellow.300')} boxSize={5} />
-                  <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.targetAudience')}</Text>
-                </HStack>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} w="100%">
-                  {/* Coluna da Esquerda */}
-                  <VStack spacing={6} align="stretch">
+                {/* Seção de Configurações */}
+                <Box>
+                  <HStack mb={6} align="center">
+                    <Icon as={FiCheck} color={useColorModeValue('green.500', 'green.300')} boxSize={5} />
+                    <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.settings')}</Text>
+                  </HStack>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                     <FormInput
-                      name="targetAudience.ageRange"
-                      label={t('test.form.targetAudience.ageRange.label')}
-                      description={t('test.form.targetAudience.ageRange.description')}
-                      placeholder={t('test.form.targetAudience.ageRange.placeholder')}
+                      name="settings.maxIterations"
+                      label={t('test.form.settings.maxIterations.label')}
+                      description={t('test.form.settings.maxIterations.description')}
+                      placeholder={t('test.form.settings.maxIterations.placeholder')}
+                      type="number"
                     />
                     <FormInput
-                      name="targetAudience.income"
-                      label={t('test.form.targetAudience.income.label')}
-                      description={t('test.form.targetAudience.income.description')}
-                      placeholder={t('test.form.targetAudience.income.placeholder')}
+                      name="settings.responseFormat"
+                      label={t('test.form.settings.responseFormat.label')}
+                      description={t('test.form.settings.responseFormat.description')}
+                      placeholder={t('test.form.settings.responseFormat.placeholder')}
                     />
-                    <Box>
-                      <FormLabel color={useColorModeValue('gray.800', 'white')} mb={0}>{t('test.form.targetAudience.painPoints.label')}</FormLabel>
-                      <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
-                        {t('test.form.targetAudience.painPoints.description')}
-                      </Text>
-                      <FormInput
-                        name="newPainPoint"
-                        placeholder={t('test.form.targetAudience.painPoints.placeholder')}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const value = e.target.value.trim();
-                            if (value) {
-                              setFieldValue('targetAudience.painPoints', [
-                                ...values.targetAudience.painPoints,
-                                value,
-                              ]);
-                              e.target.value = '';
-                            }
-                          }
-                        }}
-                      />
-                      <Wrap mt={2}>
-                        {values.targetAudience.painPoints.map((painPoint, index) => (
-                          <WrapItem key={index}>
-                            <Tag size="md" borderRadius="full" variant="solid" colorScheme="red">
-                              <TagLabel>{painPoint}</TagLabel>
-                              <TagCloseButton
-                                onClick={() =>
-                                  setFieldValue(
-                                    'targetAudience.painPoints',
-                                    values.targetAudience.painPoints.filter((_, i) => i !== index)
-                                  )
-                                }
-                              />
-                            </Tag>
-                          </WrapItem>
-                        ))}
-                      </Wrap>
-                    </Box>
-                  </VStack>
-
-                  {/* Coluna da Direita */}
-                  <VStack spacing={6} align="stretch">
+                  </SimpleGrid>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mt={6}>
                     <FormInput
-                      name="targetAudience.location"
-                      label={t('test.form.targetAudience.location.label')}
-                      description={t('test.form.targetAudience.location.description')}
-                      placeholder={t('test.form.targetAudience.location.placeholder')}
+                      name="settings.interactionStyle"
+                      label={t('test.form.settings.interactionStyle.label')}
+                      description={t('test.form.settings.interactionStyle.description')}
+                      placeholder={t('test.form.settings.interactionStyle.placeholder')}
                     />
-                    <Box>
-                      <FormLabel color={useColorModeValue('gray.800', 'white')} mb={0}>{t('test.form.targetAudience.interests.label')}</FormLabel>
-                      <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
-                        {t('test.form.targetAudience.interests.description')}
-                      </Text>
-                      <FormInput
-                        name="newInterest"
-                        placeholder={t('test.form.targetAudience.interests.placeholder')}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const value = e.target.value.trim();
-                            if (value) {
-                              setFieldValue('targetAudience.interests', [
-                                ...values.targetAudience.interests,
-                                value,
-                              ]);
-                              e.target.value = '';
-                            }
-                          }
-                        }}
-                      />
-                      <Wrap mt={2}>
-                        {values.targetAudience.interests.map((interest, index) => (
-                          <WrapItem key={index}>
-                            <Tag size="md" borderRadius="full" variant="solid" colorScheme="blue">
-                              <TagLabel>{interest}</TagLabel>
-                              <TagCloseButton
-                                onClick={() =>
-                                  setFieldValue(
-                                    'targetAudience.interests',
-                                    values.targetAudience.interests.filter((_, i) => i !== index)
-                                  )
-                                }
-                              />
-                            </Tag>
-                          </WrapItem>
-                        ))}
-                      </Wrap>
-                    </Box>
-                    <Box>
-                      <FormLabel color={useColorModeValue('gray.800', 'white')} mb={0}>{t('test.form.targetAudience.needs.label')}</FormLabel>
-                      <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
-                        {t('test.form.targetAudience.needs.description')}
-                      </Text>
-                      <FormInput
-                        name="newNeed"
-                        placeholder={t('test.form.targetAudience.needs.placeholder')}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const value = e.target.value.trim();
-                            if (value) {
-                              setFieldValue('targetAudience.needs', [
-                                ...values.targetAudience.needs,
-                                value,
-                              ]);
-                              e.target.value = '';
-                            }
-                          }
-                        }}
-                      />
-                      <Wrap mt={2}>
-                        {values.targetAudience.needs.map((need, index) => (
-                          <WrapItem key={index}>
-                            <Tag size="md" borderRadius="full" variant="solid" colorScheme="green">
-                              <TagLabel>{need}</TagLabel>
-                              <TagCloseButton
-                                onClick={() =>
-                                  setFieldValue(
-                                    'targetAudience.needs',
-                                    values.targetAudience.needs.filter((_, i) => i !== index)
-                                  )
-                                }
-                              />
-                            </Tag>
-                          </WrapItem>
-                        ))}
-                      </Wrap>
-                    </Box>
-                  </VStack>
-                </SimpleGrid>
-              </Box>
+                  </SimpleGrid>
+                </Box>
 
-              {showSubmitButton && (
-                <Button
-                  type="submit"
-                  colorScheme="teal"
-                  size="lg"
-                  w="100%"
-                  isLoading={isSubmitting}
-                >
-                  {submitLabel || t('test.form.submit')}
-                </Button>
-              )}
-            </VStack>
+                <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
 
-            {/* Modal de Seleção de Personas */}
-            <Modal isOpen={isPersonaModalOpen} onClose={() => setIsPersonaModalOpen(false)} size="4xl">
-              <ModalOverlay />
-              <ModalContent bg={useColorModeValue('white', 'gray.800')} maxH="80vh">
-                <ModalHeader color={useColorModeValue('gray.800', 'white')} display="flex" alignItems="center" justifyContent="space-between" pr={16}>
-                  <Text>{t('test.form.personas.modalTitle')}</Text>
+                {/* Seção de Tópicos */}
+                <Box>
+                  <HStack mb={6} align="center">
+                    <Icon as={FiTarget} color={useColorModeValue('purple.500', 'purple.300')} boxSize={5} />
+                    <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.topics')}</Text>
+                  </HStack>
+                  <FormLabel color={useColorModeValue('gray.800', 'white')}>{t('test.form.topics.label')}</FormLabel>
+                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
+                    {t('test.form.topics.description')}
+                  </Text>
+                  <HStack>
+                    <FormInput
+                      name="newTopic"
+                      value={newTopic}
+                      onChange={(e) => setNewTopic(e.target.value)}
+                      placeholder={t('test.form.topics.placeholder')}
+                    />
+                    <IconButton
+                      aria-label="Add topic"
+                      icon={<Icon as={FiPlus} />}
+                      onClick={() => {
+                        if (newTopic.trim()) {
+                          setFieldValue('topics', [...values.topics, newTopic.trim()]);
+                          setNewTopic('');
+                        }
+                      }}
+                    />
+                  </HStack>
+                  <Wrap mt={2}>
+                    {values.topics.map((topic, index) => (
+                      <WrapItem key={index}>
+                        <Tag size="md" variant="subtle" colorScheme="blue">
+                          <TagLabel>{topic}</TagLabel>
+                          <TagCloseButton
+                            onClick={() =>
+                              setFieldValue(
+                                'topics',
+                                values.topics.filter((_, i) => i !== index)
+                              )
+                            }
+                          />
+                        </Tag>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
+                </Box>
+
+                <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
+
+                {/* Seção de Personas */}
+                <Box>
+                  <HStack mb={6} align="center">
+                    <Icon as={FiUsers} color={useColorModeValue('blue.500', 'blue.300')} boxSize={5} />
+                    <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.personas')}</Text>
+                  </HStack>
+                  <FormLabel color={useColorModeValue('gray.800', 'white')}>{t('test.form.personas.label')}</FormLabel>
+                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
+                    {t('test.form.personas.description')}
+                  </Text>
                   <Button
-                    size="sm"
-                    onClick={() => {
-                      const allPersonaIds = personas.map(p => p.id);
-                      const shouldSelectAll = values.personaIds.length < personas.length;
-                      setFieldValue('personaIds', shouldSelectAll ? allPersonaIds : []);
-                    }}
-                    colorScheme={values.personaIds.length === personas.length ? "teal" : "gray"}
+                    leftIcon={<Icon as={FiUsers} />}
+                    onClick={() => setIsPersonaModalOpen(true)}
+                    variant="outline"
+                    w="100%"
                   >
-                    {values.personaIds.length === personas.length 
-                      ? t('test.form.personas.deselectAll')
-                      : t('test.form.personas.selectAll')}
+                    {t('test.form.personas.select')}
                   </Button>
-                  <ModalCloseButton position="absolute" right={4} top={4} color={useColorModeValue('gray.800', 'white')} />
-                </ModalHeader>
-                <ModalBody pb={6} overflowY="auto">
-                  {isLoadingPersonas ? (
-                    <VStack spacing={4}>
-                      <Skeleton height="60px" width="100%" />
-                      <Skeleton height="60px" width="100%" />
-                      <Skeleton height="60px" width="100%" />
+                  <Wrap mt={2}>
+                    {values.personaIds.map((personaId) => {
+                      const persona = personas.find((p) => p.id === personaId);
+                      return (
+                        persona && (
+                          <WrapItem key={personaId}>
+                            <Tag size="md" variant="subtle" colorScheme="blue">
+                              <TagLabel>{persona.name}</TagLabel>
+                              <TagCloseButton
+                                onClick={() =>
+                                  setFieldValue(
+                                    'personaIds',
+                                    values.personaIds.filter((id) => id !== personaId)
+                                  )
+                                }
+                              />
+                            </Tag>
+                          </WrapItem>
+                        )
+                      );
+                    })}
+                  </Wrap>
+                </Box>
+
+                <Divider borderColor={useColorModeValue('gray.200', 'gray.600')} />
+
+                {/* Seção de Público Alvo */}
+                <Box>
+                  <HStack mb={6} align="center">
+                    <Icon as={FiTarget} color={useColorModeValue('yellow.500', 'yellow.300')} boxSize={5} />
+                    <Text fontSize="xl" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>{t('test.form.sections.targetAudience')}</Text>
+                  </HStack>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} w="100%">
+                    {/* Coluna da Esquerda */}
+                    <VStack spacing={6} align="stretch">
+                      <FormInput
+                        name="targetAudience.ageRange"
+                        label={t('test.form.targetAudience.ageRange.label')}
+                        description={t('test.form.targetAudience.ageRange.description')}
+                        placeholder={t('test.form.targetAudience.ageRange.placeholder')}
+                      />
+                      <FormInput
+                        name="targetAudience.income"
+                        label={t('test.form.targetAudience.income.label')}
+                        description={t('test.form.targetAudience.income.description')}
+                        placeholder={t('test.form.targetAudience.income.placeholder')}
+                      />
+                      <Box>
+                        <FormLabel color={useColorModeValue('gray.800', 'white')} mb={0}>{t('test.form.targetAudience.painPoints.label')}</FormLabel>
+                        <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
+                          {t('test.form.targetAudience.painPoints.description')}
+                        </Text>
+                        <HStack>
+                          <FormInput
+                            name="newPainPoint"
+                            placeholder={t('test.form.targetAudience.painPoints.placeholder')}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const value = e.currentTarget.value.trim();
+                                if (value) {
+                                  setFieldValue('targetAudience.painPoints', [
+                                    ...values.targetAudience.painPoints,
+                                    value,
+                                  ]);
+                                  e.currentTarget.value = '';
+                                }
+                              }
+                            }}
+                          />
+                          <IconButton
+                            aria-label="Add pain point"
+                            icon={<Icon as={FiPlus} />}
+                            onClick={(e) => {
+                              const input = document.querySelector('input[name="newPainPoint"]') as HTMLInputElement;
+                              const value = input?.value.trim();
+                              if (value) {
+                                setFieldValue('targetAudience.painPoints', [
+                                  ...values.targetAudience.painPoints,
+                                  value,
+                                ]);
+                                input.value = '';
+                              }
+                            }}
+                          />
+                        </HStack>
+                        <Wrap mt={2}>
+                          {values.targetAudience.painPoints.map((painPoint, index) => (
+                            <WrapItem key={index}>
+                              <Tag size="md" borderRadius="full" variant="solid" colorScheme="red">
+                                <TagLabel>{painPoint}</TagLabel>
+                                <TagCloseButton
+                                  onClick={() =>
+                                    setFieldValue(
+                                      'targetAudience.painPoints',
+                                      values.targetAudience.painPoints.filter((_, i) => i !== index)
+                                    )
+                                  }
+                                />
+                              </Tag>
+                            </WrapItem>
+                          ))}
+                        </Wrap>
+                      </Box>
                     </VStack>
-                  ) : personas.length === 0 ? (
-                    <Text color={useColorModeValue('gray.600', 'gray.400')}>{t('test.form.personas.noPersonas')}</Text>
-                  ) : (
-                    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                      {personas.map((persona) => (
-                        <Box
-                          key={persona.id}
-                          as="button"
-                          onClick={() => {
-                            handlePersonaSelect(values, setFieldValue, persona.id);
-                          }}
-                          bg={values?.personaIds?.includes(persona.id) 
-                            ? useColorModeValue('teal.50', 'teal.800') 
-                            : useColorModeValue('gray.50', 'gray.700')}
-                          p={4}
-                          borderRadius="md"
-                          _hover={{ 
-                            bg: values?.personaIds?.includes(persona.id)
-                              ? useColorModeValue('teal.100', 'teal.700')
-                              : useColorModeValue('gray.100', 'gray.600')
-                          }}
-                          width="100%"
-                          textAlign="left"
-                        >
-                          <HStack justify="space-between" align="start" w="100%">
-                            <VStack align="start" spacing={2} flex={1}>
-                              <Text color={useColorModeValue('gray.800', 'white')} fontWeight="bold" fontSize="lg">{persona.name}</Text>
-                              <HStack spacing={2} color={useColorModeValue('gray.600', 'gray.300')} fontSize="sm">
-                                <Text>{persona.age} {t('test.form.personas.years')}</Text>
-                                <Text>•</Text>
-                                <Text>{persona.occupation}</Text>
-                                <Text>•</Text>
-                                <Text>{persona.location}</Text>
-                              </HStack>
-                              <Text color={useColorModeValue('gray.600', 'gray.400')} fontSize="sm" noOfLines={2}>
-                                {persona.description}
-                              </Text>
-                              {persona.traits && persona.traits.length > 0 && (
-                                <Wrap spacing={1}>
-                                  {persona.traits.slice(0, 3).map((trait, idx) => (
-                                    <Tag key={idx} size="sm" colorScheme="purple" variant="subtle">
-                                      {trait}
-                                    </Tag>
-                                  ))}
-                                </Wrap>
+
+                    {/* Coluna da Direita */}
+                    <VStack spacing={6} align="stretch">
+                      <FormInput
+                        name="targetAudience.location"
+                        label={t('test.form.targetAudience.location.label')}
+                        description={t('test.form.targetAudience.location.description')}
+                        placeholder={t('test.form.targetAudience.location.placeholder')}
+                      />
+                      <Box>
+                        <FormLabel color={useColorModeValue('gray.800', 'white')} mb={0}>{t('test.form.targetAudience.interests.label')}</FormLabel>
+                        <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
+                          {t('test.form.targetAudience.interests.description')}
+                        </Text>
+                        <HStack>
+                          <FormInput
+                            name="newInterest"
+                            placeholder={t('test.form.targetAudience.interests.placeholder')}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const value = e.currentTarget.value.trim();
+                                if (value) {
+                                  setFieldValue('targetAudience.interests', [
+                                    ...values.targetAudience.interests,
+                                    value,
+                                  ]);
+                                  e.currentTarget.value = '';
+                                }
+                              }
+                            }}
+                          />
+                          <IconButton
+                            aria-label="Add interest"
+                            icon={<Icon as={FiPlus} />}
+                            onClick={(e) => {
+                              const input = document.querySelector('input[name="newInterest"]') as HTMLInputElement;
+                              const value = input?.value.trim();
+                              if (value) {
+                                setFieldValue('targetAudience.interests', [
+                                  ...values.targetAudience.interests,
+                                  value,
+                                ]);
+                                input.value = '';
+                              }
+                            }}
+                          />
+                        </HStack>
+                        <Wrap mt={2}>
+                          {values.targetAudience.interests.map((interest, index) => (
+                            <WrapItem key={index}>
+                              <Tag size="md" borderRadius="full" variant="solid" colorScheme="blue">
+                                <TagLabel>{interest}</TagLabel>
+                                <TagCloseButton
+                                  onClick={() =>
+                                    setFieldValue(
+                                      'targetAudience.interests',
+                                      values.targetAudience.interests.filter((_, i) => i !== index)
+                                    )
+                                  }
+                                />
+                              </Tag>
+                            </WrapItem>
+                          ))}
+                        </Wrap>
+                      </Box>
+                      <Box>
+                        <FormLabel color={useColorModeValue('gray.800', 'white')} mb={0}>{t('test.form.targetAudience.needs.label')}</FormLabel>
+                        <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={2}>
+                          {t('test.form.targetAudience.needs.description')}
+                        </Text>
+                        <HStack>
+                          <FormInput
+                            name="newNeed"
+                            placeholder={t('test.form.targetAudience.needs.placeholder')}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const value = e.currentTarget.value.trim();
+                                if (value) {
+                                  setFieldValue('targetAudience.needs', [
+                                    ...values.targetAudience.needs,
+                                    value,
+                                  ]);
+                                  e.currentTarget.value = '';
+                                }
+                              }
+                            }}
+                          />
+                          <IconButton
+                            aria-label="Add need"
+                            icon={<Icon as={FiPlus} />}
+                            onClick={(e) => {
+                              const input = document.querySelector('input[name="newNeed"]') as HTMLInputElement;
+                              const value = input?.value.trim();
+                              if (value) {
+                                setFieldValue('targetAudience.needs', [
+                                  ...values.targetAudience.needs,
+                                  value,
+                                ]);
+                                input.value = '';
+                              }
+                            }}
+                          />
+                        </HStack>
+                        <Wrap mt={2}>
+                          {values.targetAudience.needs.map((need, index) => (
+                            <WrapItem key={index}>
+                              <Tag size="md" borderRadius="full" variant="solid" colorScheme="green">
+                                <TagLabel>{need}</TagLabel>
+                                <TagCloseButton
+                                  onClick={() =>
+                                    setFieldValue(
+                                      'targetAudience.needs',
+                                      values.targetAudience.needs.filter((_, i) => i !== index)
+                                    )
+                                  }
+                                />
+                              </Tag>
+                            </WrapItem>
+                          ))}
+                        </Wrap>
+                      </Box>
+                    </VStack>
+                  </SimpleGrid>
+                </Box>
+
+                {showSubmitButton && (
+                  <Button
+                    type="submit"
+                    colorScheme="teal"
+                    size="lg"
+                    w="100%"
+                    isLoading={isSubmitting}
+                    onClick={() => {
+                      console.log('Submit button clicked');
+                      handleSubmit();
+                    }}
+                  >
+                    {submitLabel || t('test.form.submit')}
+                  </Button>
+                )}
+              </VStack>
+
+              {/* Modal de Seleção de Personas */}
+              <Modal isOpen={isPersonaModalOpen} onClose={() => setIsPersonaModalOpen(false)} size="4xl">
+                <ModalOverlay />
+                <ModalContent bg={useColorModeValue('white', 'gray.800')} maxH="80vh">
+                  <ModalHeader color={useColorModeValue('gray.800', 'white')} display="flex" alignItems="center" justifyContent="space-between" pr={16}>
+                    <Text>{t('test.form.personas.modalTitle')}</Text>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const allPersonaIds = personas.map(p => p.id);
+                        const shouldSelectAll = values.personaIds.length < personas.length;
+                        setFieldValue('personaIds', shouldSelectAll ? allPersonaIds : []);
+                      }}
+                      colorScheme={values.personaIds.length === personas.length ? "teal" : "gray"}
+                    >
+                      {values.personaIds.length === personas.length 
+                        ? t('test.form.personas.deselectAll')
+                        : t('test.form.personas.selectAll')}
+                    </Button>
+                    <ModalCloseButton position="absolute" right={4} top={4} color={useColorModeValue('gray.800', 'white')} />
+                  </ModalHeader>
+                  <ModalBody pb={6} overflowY="auto">
+                    {isLoadingPersonas ? (
+                      <VStack spacing={4}>
+                        <Skeleton height="60px" width="100%" />
+                        <Skeleton height="60px" width="100%" />
+                        <Skeleton height="60px" width="100%" />
+                      </VStack>
+                    ) : personas.length === 0 ? (
+                      <Text color={useColorModeValue('gray.600', 'gray.400')}>{t('test.form.personas.noPersonas')}</Text>
+                    ) : (
+                      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                        {personas.map((persona) => (
+                          <Box
+                            key={persona.id}
+                            as="button"
+                            onClick={() => {
+                              handlePersonaSelect(values, setFieldValue, persona.id);
+                            }}
+                            bg={values?.personaIds?.includes(persona.id) 
+                              ? useColorModeValue('teal.50', 'teal.800') 
+                              : useColorModeValue('gray.50', 'gray.700')}
+                            p={4}
+                            borderRadius="md"
+                            _hover={{ 
+                              bg: values?.personaIds?.includes(persona.id)
+                                ? useColorModeValue('teal.100', 'teal.700')
+                                : useColorModeValue('gray.100', 'gray.600')
+                            }}
+                            width="100%"
+                            textAlign="left"
+                          >
+                            <HStack justify="space-between" align="start" w="100%">
+                              <VStack align="start" spacing={2} flex={1}>
+                                <Text color={useColorModeValue('gray.800', 'white')} fontWeight="bold" fontSize="lg">{persona.name}</Text>
+                                <HStack spacing={2} color={useColorModeValue('gray.600', 'gray.300')} fontSize="sm">
+                                  <Text>{persona.age} {t('test.form.personas.years')}</Text>
+                                  <Text>•</Text>
+                                  <Text>{persona.occupation}</Text>
+                                  <Text>•</Text>
+                                  <Text>{persona.location}</Text>
+                                </HStack>
+                                <Text color={useColorModeValue('gray.600', 'gray.400')} fontSize="sm" noOfLines={2}>
+                                  {persona.description}
+                                </Text>
+                                {persona.traits && persona.traits.length > 0 && (
+                                  <Wrap spacing={1}>
+                                    {persona.traits.slice(0, 3).map((trait, idx) => (
+                                      <Tag key={idx} size="sm" colorScheme="purple" variant="subtle">
+                                        {trait}
+                                      </Tag>
+                                    ))}
+                                  </Wrap>
+                                )}
+                              </VStack>
+                              {values?.personaIds?.includes(persona.id) && (
+                                <Icon as={FiCheck} color={useColorModeValue('teal.500', 'teal.300')} boxSize={5} flexShrink={0} />
                               )}
-                            </VStack>
-                            {values?.personaIds?.includes(persona.id) && (
-                              <Icon as={FiCheck} color={useColorModeValue('teal.500', 'teal.300')} boxSize={5} flexShrink={0} />
-                            )}
-                          </HStack>
-                        </Box>
-                      ))}
-                    </SimpleGrid>
-                  )}
-                </ModalBody>
-              </ModalContent>
-            </Modal>
-          </Form>
-        )}
+                            </HStack>
+                          </Box>
+                        ))}
+                      </SimpleGrid>
+                    )}
+                  </ModalBody>
+                </ModalContent>
+              </Modal>
+            </Form>
+          );
+        }}
       </Formik>
     </Card>
   );

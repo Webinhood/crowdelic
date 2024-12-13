@@ -1,0 +1,199 @@
+
+> @crowdelic/frontend@1.0.0 dev
+> vite
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+  VITE v5.4.11  ready in 388 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+1:09:01 AM [vite] warning: Duplicate key "messages" in object literal
+285|            name: 'Name'
+286|          },
+287|          messages: {
+   |          ^
+288|            count: 'messages',
+289|            noResults: 'No messages found'
+
+  Plugin: vite:esbuild
+  File: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/i18n/translations.ts
+1:09:01 AM [vite] warning: Duplicate key "sections" in object literal
+431|            }
+432|          },
+433|          sections: {
+   |          ^
+434|            personal: 'Personal Characteristics',
+435|            daily: 'Daily Life',
+
+  Plugin: vite:esbuild
+  File: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/i18n/translations.ts
+1:09:01 AM [vite] warning: Duplicate key "messages" in object literal
+803|            name: 'Nome'
+804|          },
+805|          messages: {
+   |          ^
+806|            count: 'mensagens',
+807|            noResults: 'Nenhuma mensagem encontrada'
+
+  Plugin: vite:esbuild
+  File: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/i18n/translations.ts
+1:09:01 AM [vite] warning: Duplicate key "sections" in object literal
+950|            }
+951|          },
+952|          sections: {
+   |          ^
+953|            personal: 'Informações pessoais',
+954|            daily: 'Rotina diária',
+
+  Plugin: vite:esbuild
+  File: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/i18n/translations.ts
+1:09:18 AM [vite] hmr update /src/components/TestResponses.tsx
+1:09:43 AM [vite] hmr update /src/components/TestMessage.tsx
+1:09:43 AM [vite] Internal server error: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/components/TestMessage.tsx: Identifier 'metadata' has already been declared. (128:4)
+
+  126 |     personal_context = {},
+  127 |     target_audience_alignment = {},
+> 128 |     metadata = {}
+      |     ^
+  129 |   } = message || {};
+  130 |
+  131 |   // Debug logs
+  Plugin: vite:react-babel
+  File: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/components/TestMessage.tsx:128:4
+  126|      personal_context = {},
+  127|      target_audience_alignment = {},
+  128|      metadata = {}
+     |      ^
+  129|    } = message || {};
+  130|  
+      at constructor (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:359:19)
+      at TypeScriptParserMixin.raise (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:3266:19)
+      at TypeScriptScopeHandler.checkRedeclarationInScope (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:1502:19)
+      at TypeScriptScopeHandler.declareName (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:1468:12)
+      at TypeScriptScopeHandler.declareName (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:6934:11)
+      at TypeScriptParserMixin.declareNameFromIdentifier (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7357:16)
+      at TypeScriptParserMixin.checkIdentifier (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7353:12)
+      at TypeScriptParserMixin.checkLVal (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7294:12)
+      at TypeScriptParserMixin.checkLVal (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7334:12)
+      at TypeScriptParserMixin.checkLVal (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7334:12)
+      at TypeScriptParserMixin.checkLVal (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7330:16)
+      at TypeScriptParserMixin.parseVarId (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12906:10)
+      at TypeScriptParserMixin.parseVarId (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9408:11)
+      at TypeScriptParserMixin.parseVar (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12881:12)
+      at TypeScriptParserMixin.parseVarStatement (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12728:10)
+      at TypeScriptParserMixin.parseVarStatement (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9137:31)
+      at TypeScriptParserMixin.parseStatementContent (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12344:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9167:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12261:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12241:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12814:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12807:10)
+      at TypeScriptParserMixin.parseBlock (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12795:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:11638:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:11613:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:11226:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10867:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:6818:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10619:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10604:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10584:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9493:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10438:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10443:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10420:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10383:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9442:20)
+      at /Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10353:39
+      at TypeScriptParserMixin.allowInAnd (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:11950:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10353:17)
+      at TypeScriptParserMixin.parseVar (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12882:91)
+      at TypeScriptParserMixin.parseVarStatement (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12728:10)
+      at TypeScriptParserMixin.parseVarStatement (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9137:31)
+      at TypeScriptParserMixin.parseStatementContent (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12344:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9167:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12261:17)
+      at TypeScriptParserMixin.parseModuleItem (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12238:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12814:36)
+      at TypeScriptParserMixin.parseBlockBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12807:10)
+      at TypeScriptParserMixin.parseProgram (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12135:10)
+1:09:51 AM [vite] hmr update /src/components/TestResponses.tsx
+1:09:52 AM [vite] Pre-transform error: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/components/TestMessage.tsx: Identifier 'metadata' has already been declared. (128:4)
+
+  126 |     personal_context = {},
+  127 |     target_audience_alignment = {},
+> 128 |     metadata = {}
+      |     ^
+  129 |   } = message || {};
+  130 |
+  131 |   // Debug logs
+1:10:08 AM [vite] Internal server error: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/components/TestMessage.tsx: Identifier 'metadata' has already been declared. (128:4)
+
+  126 |     personal_context = {},
+  127 |     target_audience_alignment = {},
+> 128 |     metadata = {}
+      |     ^
+  129 |   } = message || {};
+  130 |
+  131 |   // Debug logs
+  Plugin: vite:react-babel
+  File: /Users/macbookpro/CascadeProjects/crowdelic/frontend/src/components/TestMessage.tsx:128:4
+  126|      personal_context = {},
+  127|      target_audience_alignment = {},
+  128|      metadata = {}
+     |      ^
+  129|    } = message || {};
+  130|  
+      at constructor (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:359:19)
+      at TypeScriptParserMixin.raise (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:3266:19)
+      at TypeScriptScopeHandler.checkRedeclarationInScope (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:1502:19)
+      at TypeScriptScopeHandler.declareName (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:1468:12)
+      at TypeScriptScopeHandler.declareName (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:6934:11)
+      at TypeScriptParserMixin.declareNameFromIdentifier (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7357:16)
+      at TypeScriptParserMixin.checkIdentifier (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7353:12)
+      at TypeScriptParserMixin.checkLVal (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7294:12)
+      at TypeScriptParserMixin.checkLVal (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7334:12)
+      at TypeScriptParserMixin.checkLVal (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7334:12)
+      at TypeScriptParserMixin.checkLVal (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:7330:16)
+      at TypeScriptParserMixin.parseVarId (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12906:10)
+      at TypeScriptParserMixin.parseVarId (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9408:11)
+      at TypeScriptParserMixin.parseVar (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12881:12)
+      at TypeScriptParserMixin.parseVarStatement (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12728:10)
+      at TypeScriptParserMixin.parseVarStatement (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9137:31)
+      at TypeScriptParserMixin.parseStatementContent (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12344:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9167:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12261:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12241:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12814:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12807:10)
+      at TypeScriptParserMixin.parseBlock (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12795:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:11638:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:11613:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:11226:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10867:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:6818:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10619:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10604:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10584:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9493:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10438:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10443:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10420:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10383:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9442:20)
+      at /Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10353:39
+      at TypeScriptParserMixin.allowInAnd (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:11950:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:10353:17)
+      at TypeScriptParserMixin.parseVar (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12882:91)
+      at TypeScriptParserMixin.parseVarStatement (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12728:10)
+      at TypeScriptParserMixin.parseVarStatement (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9137:31)
+      at TypeScriptParserMixin.parseStatementContent (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12344:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:9167:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12261:17)
+      at TypeScriptParserMixin.parseModuleItem (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12238:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12814:36)
+      at TypeScriptParserMixin.parseBlockBody (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12807:10)
+      at TypeScriptParserMixin.parseProgram (/Users/macbookpro/CascadeProjects/crowdelic/node_modules/@babel/parser/lib/index.js:12135:10)
+1:10:27 AM [vite] hmr update /src/components/TestMessage.tsx
+1:10:39 AM [vite] hmr update /src/components/TestMessage.tsx
+1:10:47 AM [vite] hmr update /src/components/TestResponses.tsx

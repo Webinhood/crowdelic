@@ -49,15 +49,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Attempting login...');
       const response = await login(credentials);
       console.log('Login response:', response);
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        setUser(response.user);
-        setIsAuthenticated(true);
-        console.log('Login successful, token saved');
-      } else {
-        console.error('No token received in login response');
-        throw new Error('No token received');
-      }
+      
+      // Salvar o token no localStorage
+      localStorage.setItem('token', response.token);
+      
+      setUser(response.user);
+      setIsAuthenticated(true);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -80,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {
+      console.error('Logout error:', error);
       throw error;
     }
   };

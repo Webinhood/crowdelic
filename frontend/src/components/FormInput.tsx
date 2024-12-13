@@ -78,124 +78,159 @@ export const FormInput: React.FC<FormInputProps> = ({
 
   return (
     <Field name={name}>
-      {({ field, form }: FieldProps) => (
-        <FormControl 
-          isInvalid={!!form.errors[name] && form.touched[name]}
-          mb={4}
-        >
-          <Box mb={2}>
-            {label && (
-              <FormLabel htmlFor={name} color={textColor} mb={0}>
-                {label}
-              </FormLabel>
-            )}
-            {description && (
-              <Text fontSize="sm" color="gray.400" mb={2}>
-                {description}
-              </Text>
-            )}
-          </Box>
-          
-          {type === 'tags' ? (
-            <Box>
-              <Input
+      {({ field, form }: FieldProps) => {
+        const error = form.errors[name];
+        const touched = form.touched[name];
+        console.log(`Field ${name}:`, { value: field.value, error, touched });
+        
+        return (
+          <FormControl 
+            isInvalid={!!error && touched}
+            mb={4}
+          >
+            <Box mb={2}>
+              {label && (
+                <FormLabel htmlFor={name} color={textColor} mb={0}>
+                  {label}
+                </FormLabel>
+              )}
+              {description && (
+                <Text fontSize="sm" color="gray.400" mb={2}>
+                  {description}
+                </Text>
+              )}
+            </Box>
+
+            {type === 'tags' ? (
+              <Box>
+                <Input
+                  {...field}
+                  id={name}
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => handleTagKeyDown(e, field, form)}
+                  placeholder={placeholder}
+                  bg={inputBg}
+                  color={textColor}
+                  border="1px solid"
+                  borderColor={borderColor}
+                  _hover={{ borderColor: hoverBorderColor }}
+                  _focus={{ borderColor: hoverBorderColor }}
+                />
+                {helperText && (
+                  <FormHelperText color={labelColor} fontSize="xs">
+                    {helperText}
+                  </FormHelperText>
+                )}
+                <HStack spacing={2} mt={2} wrap="wrap">
+                  {field.value?.map((tag: string, index: number) => (
+                    <Tag
+                      key={index}
+                      size="md"
+                      borderRadius="full"
+                      variant="solid"
+                      colorScheme="blue"
+                      mb={2}
+                    >
+                      <TagLabel>{tag}</TagLabel>
+                      <TagCloseButton
+                        onClick={() => removeTag(index, field, form)}
+                      />
+                    </Tag>
+                  ))}
+                </HStack>
+              </Box>
+            ) : as === 'textarea' ? (
+              <Textarea
                 {...field}
+                {...props}
                 id={name}
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => handleTagKeyDown(e, field, form)}
                 placeholder={placeholder}
+                rows={rows}
                 bg={inputBg}
                 color={textColor}
-                border="1px solid"
                 borderColor={borderColor}
                 _hover={{ borderColor: hoverBorderColor }}
                 _focus={{ borderColor: hoverBorderColor }}
               />
-              {helperText && (
-                <FormHelperText color={labelColor} fontSize="xs">
-                  {helperText}
-                </FormHelperText>
-              )}
-              <HStack spacing={2} mt={2} wrap="wrap">
-                {field.value?.map((tag: string, index: number) => (
-                  <Tag
-                    key={index}
-                    size="md"
-                    borderRadius="full"
-                    variant="solid"
-                    colorScheme="blue"
-                    mb={2}
-                  >
-                    <TagLabel>{tag}</TagLabel>
-                    <TagCloseButton
-                      onClick={() => removeTag(index, field, form)}
-                    />
-                  </Tag>
-                ))}
-              </HStack>
-            </Box>
-          ) : as === 'select' ? (
-            <Select
-              {...field}
-              id={name}
-              bg={inputBg}
-              color={textColor}
-              borderColor={borderColor}
-              _hover={{ borderColor: hoverBorderColor }}
-              {...props}
-            >
-              {options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          ) : as === 'textarea' ? (
-            <Textarea
-              {...field}
-              id={name}
-              rows={rows}
-              bg={inputBg}
-              color={textColor}
-              borderColor={borderColor}
-              _hover={{ borderColor: hoverBorderColor }}
-              placeholder={placeholder}
-              {...props}
-            />
-          ) : (
-            <Box position="relative">
+            ) : as === 'input' ? (
               <Input
                 {...field}
                 {...props}
                 id={name}
                 type={type}
+                bg={inputBg}
+                borderColor={borderColor}
+                _hover={{ borderColor: hoverBorderColor }}
+                _focus={{ borderColor: hoverBorderColor }}
+                color={textColor}
+                placeholder={placeholder}
+                onChange={(e) => {
+                  field.onChange(e);
+                  if (props.onChange) {
+                    props.onChange(e);
+                  }
+                }}
+                onKeyPress={onKeyPress}
+                isInvalid={!!error && touched}
+                autoComplete="off"
+              />
+            ) : as === 'select' ? (
+              <Select
+                {...field}
+                {...props}
+                id={name}
                 placeholder={placeholder}
                 bg={inputBg}
                 color={textColor}
                 borderColor={borderColor}
                 _hover={{ borderColor: hoverBorderColor }}
                 _focus={{ borderColor: hoverBorderColor }}
-                onKeyPress={onKeyPress}
-                pr={InputRightElement ? "3rem" : undefined}
-              />
-              {InputRightElement && (
-                <Box position="absolute" right="0" top="50%" transform="translateY(-50%)" pr={2}>
-                  {InputRightElement}
-                </Box>
-              )}
-            </Box>
-          )}
-          
-          {helperText && !form.errors[name] && (
-            <FormHelperText color="gray.400">{helperText}</FormHelperText>
-          )}
-          
-          <FormErrorMessage>
-            {form.errors[name]}
-          </FormErrorMessage>
-        </FormControl>
-      )}
+              >
+                {options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <Box position="relative">
+                <Input
+                  {...field}
+                  {...props}
+                  id={name}
+                  type={type}
+                  placeholder={placeholder}
+                  bg={inputBg}
+                  color={textColor}
+                  borderColor={borderColor}
+                  _hover={{ borderColor: hoverBorderColor }}
+                  _focus={{ borderColor: hoverBorderColor }}
+                  onKeyPress={onKeyPress}
+                  pr={InputRightElement ? "3rem" : undefined}
+                />
+                {InputRightElement && (
+                  <Box position="absolute" right="0" top="50%" transform="translateY(-50%)" pr={2}>
+                    {InputRightElement}
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {error && touched && (
+              <FormErrorMessage color={errorColor}>
+                {error}
+              </FormErrorMessage>
+            )}
+
+            {helperText && !error && (
+              <FormHelperText color={labelColor}>
+                {helperText}
+              </FormHelperText>
+            )}
+          </FormControl>
+        );
+      }}
     </Field>
   );
 };

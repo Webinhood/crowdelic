@@ -42,6 +42,7 @@ interface TestResponsesProps {
   personas: Persona[];
   personaStatus?: PersonaStatus[];
   isRunning: boolean;
+  thinkingPersonas: Set<string>;
   onDeleteMessage?: (messageId: string) => void;
 }
 
@@ -53,6 +54,7 @@ const TestResponses: React.FC<TestResponsesProps> = ({
   personas,
   personaStatus = [],
   isRunning,
+  thinkingPersonas,
   onDeleteMessage,
 }) => {
   const { t } = useTranslation();
@@ -63,38 +65,56 @@ const TestResponses: React.FC<TestResponsesProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'time'>('time');
 
-  // Agrupar mensagens por persona
+  // Debug logs
+  console.log('TestResponses - Messages recebidas:', messages);
+
+  // Agrupar mensagens por persona com validação
   const messagesByPersona = React.useMemo(() => {
-    console.log('Agrupando mensagens por persona:', { messages, personas });
     const grouped = new Map<string, TestMessageType[]>();
+    
+    // Debug
+    console.log('Agrupando mensagens por persona:', messages);
     
     // Inicializar o map com arrays vazios para todas as personas
     personas.forEach(persona => {
       grouped.set(persona.id, []);
     });
     
-    // Adicionar mensagens aos respectivos grupos
+    // Validar e adicionar mensagens aos respectivos grupos
     if (Array.isArray(messages)) {
       messages.forEach(message => {
-        if (message && message.persona_id) {
+        if (message && message.persona_id && grouped.has(message.persona_id)) {
           const personaMessages = grouped.get(message.persona_id) || [];
+          // Debug
+          console.log('Mensagem para persona', message.persona_id, ':', message);
           personaMessages.push(message);
-          grouped.set(message.persona_id, personaMessages);
+          grouped.set(message.persona_id, personaMessages.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          ));
+        } else {
+          console.warn('TestResponses: Mensagem inválida ou persona_id não encontrado:', message);
         }
       });
     }
     
-    console.log('Mensagens agrupadas:', Object.fromEntries(grouped));
     return grouped;
   }, [messages, personas]);
 
-  // Filtrar e ordenar personas
+  // Filtrar e ordenar personas com validação
   const filteredPersonas = React.useMemo(() => {
-    console.log('Filtrando personas:', { personas, searchTerm, sortBy });
+    if (!Array.isArray(personas)) {
+      console.error('TestResponses: Lista de personas inválida:', personas);
+      return [];
+    }
+
     return personas
       .filter(persona => {
-        const matchesSearch = persona.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            persona.occupation.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!persona || !persona.name || !persona.occupation) {
+          console.warn('TestResponses: Persona com dados incompletos:', persona);
+          return false;
+        }
+        const matchesSearch = (persona.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             persona.occupation.toLowerCase().includes(searchTerm.toLowerCase()));
         return matchesSearch;
       })
       .sort((a, b) => {
@@ -105,8 +125,8 @@ const TestResponses: React.FC<TestResponsesProps> = ({
           default:
             const messagesA = messagesByPersona.get(a.id) || [];
             const messagesB = messagesByPersona.get(b.id) || [];
-            const latestA = messagesA.length ? new Date(messagesA[messagesA.length - 1].created_at).getTime() : 0;
-            const latestB = messagesB.length ? new Date(messagesB[messagesB.length - 1].created_at).getTime() : 0;
+            const latestA = messagesA.length ? new Date(messagesA[0].created_at).getTime() : 0;
+            const latestB = messagesB.length ? new Date(messagesB[0].created_at).getTime() : 0;
             return latestB - latestA;
         }
       });
@@ -169,6 +189,7 @@ const TestResponses: React.FC<TestResponsesProps> = ({
               placeholder={t('test.search_personas')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label={t('test.search_personas')}
             />
           </HStack>
           <HStack>
@@ -176,6 +197,7 @@ const TestResponses: React.FC<TestResponsesProps> = ({
             <Select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'name' | 'time')}
+              aria-label={t('test.sort.label')}
             >
               <option value="time">{t('test.sort.time')}</option>
               <option value="name">{t('test.sort.name')}</option>
@@ -185,61 +207,83 @@ const TestResponses: React.FC<TestResponsesProps> = ({
       </Box>
 
       {/* Lista de personas com accordion */}
-      <Accordion allowMultiple>
-        <AnimatePresence>
-          {filteredPersonas.map(persona => {
-            const personaMessages = messagesByPersona.get(persona.id) || [];
-            const status = personaStatus.find(s => s.personaId === persona.id);
-            
-            return (
-              <MotionBox
-                key={persona.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <AccordionItem
-                  border="1px solid"
-                  borderColor={borderColor}
-                  borderRadius="md"
-                  mb={4}
-                  bg={bgColor}
+      {filteredPersonas.length > 0 ? (
+        <Accordion allowMultiple>
+          <AnimatePresence>
+            {filteredPersonas.map(persona => {
+              const personaMessages = messagesByPersona.get(persona.id) || [];
+              const status = personaStatus.find(s => s.personaId === persona.id);
+              const isThinking = isRunning && thinkingPersonas.has(persona.id);
+              
+              return (
+                <MotionBox
+                  key={persona.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
                 >
-                  <AccordionButton p={4}>
-                    <HStack flex="1" spacing={4}>
-                      <Avatar name={persona.name} src={persona.avatar} size="sm" />
-                      <Box flex="1" textAlign="left">
-                        <Text fontWeight="bold">{persona.name}</Text>
-                        <Text fontSize="sm" color="gray.500">
-                          {persona.occupation} • {personaMessages.length} {t('test.messages.count')}
-                        </Text>
-                      </Box>
-                      {renderStatusBadge(status?.status)}
-                    </HStack>
-                    <AccordionIcon />
-                  </AccordionButton>
-                  <AccordionPanel pb={4}>
-                    <VStack spacing={4} align="stretch">
-                      {personaMessages.map((message, index) => (
-                        <TestMessage
-                          key={message.id || index}
-                          message={message}
-                          persona={persona}
-                          timestamp={new Date(message.created_at)}
-                          onDelete={onDeleteMessage}
+                  <AccordionItem
+                    border="1px solid"
+                    borderColor={borderColor}
+                    borderRadius="md"
+                    mb={4}
+                    bg={bgColor}
+                  >
+                    <AccordionButton p={4}>
+                      <HStack flex="1" spacing={4}>
+                        <Avatar 
+                          name={persona.name} 
+                          src={persona.avatar} 
+                          size="sm"
+                          loading="lazy"
                         />
-                      ))}
-                      {status?.status === 'running' && (
-                        <ThinkingMessage persona={persona} />
-                      )}
-                    </VStack>
-                  </AccordionPanel>
-                </AccordionItem>
-              </MotionBox>
-            );
-          })}
-        </AnimatePresence>
-      </Accordion>
+                        <VStack flex="1" align="start" spacing={1}>
+                          <Text fontWeight="bold">{persona.name}</Text>
+                          <Text fontSize="sm" color="gray.500">
+                            {persona.occupation} • {personaMessages.length} {t('test.messages.count')}
+                          </Text>
+                          {isThinking && (
+                            <ThinkingMessage
+                              persona={{
+                                name: persona.name,
+                                avatar: persona.avatar,
+                                occupation: persona.occupation
+                              }}
+                              isVisible={true}
+                              compact={true}
+                            />
+                          )}
+                        </VStack>
+                        <Box display="flex" alignItems="center">
+                          {renderStatusBadge(status?.status)}
+                        </Box>
+                      </HStack>
+                      <AccordionIcon />
+                    </AccordionButton>
+                    <AccordionPanel pb={4}>
+                      <VStack spacing={4} align="stretch">
+                        {personaMessages.map((message, index) => (
+                          <TestMessage
+                            key={message.id || index}
+                            message={message}
+                            persona={persona}
+                            timestamp={message.created_at ? new Date(message.created_at) : undefined}
+                            onDelete={onDeleteMessage}
+                          />
+                        ))}
+                      </VStack>
+                    </AccordionPanel>
+                  </AccordionItem>
+                </MotionBox>
+              );
+            })}
+          </AnimatePresence>
+        </Accordion>
+      ) : (
+        <Box textAlign="center" py={8}>
+          <Text color="gray.500">{t('test.messages.noResults')}</Text>
+        </Box>
+      )}
     </Box>
   );
 };

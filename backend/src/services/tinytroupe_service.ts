@@ -4,6 +4,8 @@ import { createLogger } from '../utils/logger';
 import { formatSystemPrompt, formatUserPrompt } from './prompt_template';
 import { z } from 'zod';
 import { pool } from '../config/database';
+import { spawn } from 'child_process';
+import path from 'path';
 
 const pool = new Pool({
   user: 'crowdelic',
@@ -64,12 +66,6 @@ interface Test {
     painPoints: string[];
     needs: string[];
   };
-  content: {
-    type: string;
-    description: string;
-    url?: string;
-    message?: string;
-  };
   context: {
     platform: string;
     timing: string;
@@ -84,15 +80,23 @@ interface CostsService {
   logUsage(model: string, usage: any, testId?: string): Promise<void>;
 }
 
+interface TinyTroupeConfig {
+  pythonPath: string;
+  scriptPath: string;
+  apiKey: string;
+  model: string;
+  cacheEnabled: boolean;
+  cacheDir: string;
+  loggingLevel: string;
+}
+
 // Define schemas for validation
 const metadataSchema = z.object({
   sentiment: z.number().min(0).max(10),
   confidence: z.number().min(0).max(10),
-  context: z.object({
-    role: z.string(),
-    objective: z.string(),
-    perspective: z.string()
-  })
+  personalRelevance: z.number().min(0).max(10),
+  valueProposition: z.number().min(0).max(10),
+  implementationFeasibility: z.number().min(0).max(10)
 });
 
 const tagsSchema = z.object({
@@ -120,11 +124,13 @@ export class TinyTroupeService {
   private costsService: CostsService;
   private eventCallback?: (event: string, data: any) => void;
   private logger: any;
+  private config: TinyTroupeConfig;
 
-  constructor(openai: OpenAI, costsService: CostsService) {
+  constructor(openai: OpenAI, costsService: CostsService, config: TinyTroupeConfig) {
     this.openai = openai;
     this.costsService = costsService;
     this.logger = createLogger('TinyTroupeService');
+    this.config = config;
   }
 
   setEventCallback(callback: (event: string, data: any) => void) {
@@ -177,7 +183,7 @@ export class TinyTroupeService {
 
   private fixResponseFormat(rawResponse: string): SimulationResponse {
     try {
-      console.log('Raw response:', rawResponse);
+      this.logger.debug('Raw response:', rawResponse);
       
       // Remove markdown code block indicators if present
       let cleanResponse = rawResponse;
@@ -188,15 +194,37 @@ export class TinyTroupeService {
           .trim();
       }
       
-      console.log('Cleaned response:', cleanResponse);
-      const parsed = JSON.parse(cleanResponse);
-      console.log('Parsed JSON:', parsed);
+      // Substituir aspas simples por aspas duplas em nomes de propriedades
+      cleanResponse = cleanResponse.replace(/'([^']+)':/g, '"$1":');
       
-      // Apenas validar com Zod, sem tentar reformatar
-      return responseSchema.parse(parsed);
+      this.logger.debug('Cleaned response:', cleanResponse);
+      
+      try {
+        const parsed = JSON.parse(cleanResponse);
+        this.logger.debug('Parsed JSON:', parsed);
+        
+        // Apenas validar com Zod, sem tentar reformatar
+        return responseSchema.parse(parsed);
+      } catch (parseError) {
+        this.logger.error('JSON Parse error:', parseError);
+        this.logger.error('Position of error:', (parseError as SyntaxError).message);
+        
+        // Se falhar, tentar limpar ainda mais o JSON
+        const sanitizedResponse = cleanResponse
+          .replace(/\n/g, ' ')           // Remove quebras de linha
+          .replace(/\s+/g, ' ')          // Remove espaços extras
+          .replace(/,\s*}/g, '}')        // Remove vírgulas antes de }
+          .replace(/,\s*]/g, ']')        // Remove vírgulas antes de ]
+          .replace(/'/g, '"')            // Substitui todas as aspas simples por duplas
+          .trim();
+        
+        this.logger.debug('Sanitized response:', sanitizedResponse);
+        const parsed = JSON.parse(sanitizedResponse);
+        return responseSchema.parse(parsed);
+      }
     } catch (error) {
-      console.error('Error in fixResponseFormat:', error);
-      console.error('Raw response that caused error:', rawResponse);
+      this.logger.error('Error in fixResponseFormat:', error);
+      this.logger.error('Raw response that caused error:', rawResponse);
       
       if (error instanceof z.ZodError) {
         throw new Error('Invalid response format: ' + error.errors.map(e => e.message).join(', '));
@@ -209,7 +237,7 @@ export class TinyTroupeService {
           try {
             return this.fixResponseFormat(jsonMatch[0]);
           } catch (e) {
-            console.error('Failed to parse extracted JSON:', e);
+            this.logger.error('Failed to parse extracted JSON:', e);
           }
         }
         throw new Error('Invalid JSON format: ' + error.message);
@@ -249,9 +277,16 @@ export class TinyTroupeService {
   }
 
   private async generateResponse(personaId: string, test: Test, config: any): Promise<any> {
+    console.log('\n[generateResponse] ==================');
+    console.log('1. Iniciando geração de resposta');
+    console.log('PersonaId:', personaId);
+    console.log('Test:', JSON.stringify(test, null, 2));
+    
     try {
       // Buscar dados completos da persona
+      console.log('2. Buscando dados da persona');
       const persona = await this.getPersonaData(personaId);
+      console.log('3. Persona encontrada:', JSON.stringify(persona, null, 2));
       
       // Garante que test.content seja uma string
       const testContent = typeof test.content === 'object' ? JSON.stringify(test.content) : test.content;
@@ -267,78 +302,61 @@ export class TinyTroupeService {
         }
       ];
 
-      console.log('\n🔍 ================== OPENAI INPUT START ==================');
-      console.log('📝 Persona:', persona.name);
-      console.log('📋 Test:', test.title);
-      console.log('📨 Messages:', JSON.stringify(messages, null, 2));
-      console.log('================== OPENAI INPUT END ==================== 🔍\n');
+      console.log('4. Mensagens formatadas:', JSON.stringify(messages, null, 2));
 
       try {
-        this.logger.info('Iniciando chamada OpenAI com configuração:', {
-          model: 'gpt-4o-mini',
+        console.log('5. Iniciando chamada OpenAI');
+        const completion = await this.openai.chat.completions.create({
+          messages,
+          model: this.config.model,
           temperature: 0.7,
           max_tokens: 4000
         });
 
-        const completion = await this.openai.chat.completions.create({
-          messages,
-          model: 'gpt-4o-mini',
-          temperature: 0.7,
-          max_tokens: 4000,
-          response_format: { type: "json_object" }
-        });
-
-        this.logger.info('Resposta recebida da OpenAI:', {
-          id: completion.id,
-          model: completion.model,
-          usage: completion.usage
-        });
-
-        const response = completion.choices[0].message.content;
-        this.logger.info('Conteúdo da resposta:', response);
-
-        // Validar e corrigir o formato da resposta
-        try {
-          const parsedResponse = JSON.parse(response);
-          if (!parsedResponse.firstImpression) {
-            throw new Error('Invalid response format: missing firstImpression');
-          }
-
-          // Garantir que os arrays de tags não sejam [Array]
-          if (parsedResponse.tags) {
-            parsedResponse.tags = {
-              positive: Array.isArray(parsedResponse.tags.positive) ? parsedResponse.tags.positive : [],
-              negative: Array.isArray(parsedResponse.tags.negative) ? parsedResponse.tags.negative : [],
-              opportunity: Array.isArray(parsedResponse.tags.opportunity) ? parsedResponse.tags.opportunity : []
-            };
-          }
-
-          return parsedResponse;
-        } catch (parseError) {
-          console.error('Error parsing OpenAI response:', parseError);
-          throw new Error('Invalid response format from OpenAI');
-        }
-      } catch (error) {
-        this.logger.error('Erro na chamada OpenAI:', {
-          error: error.message,
-          name: error.name,
-          stack: error.stack,
-          cause: error.cause
-        });
+        console.log('6. Resposta recebida da OpenAI:', JSON.stringify(completion, null, 2));
         
-        if (error.response) {
-          this.logger.error('Detalhes do erro OpenAI:', {
-            status: error.response.status,
-            statusText: error.response.statusText,
-            headers: error.response.headers,
-            data: error.response.data
+        // Log usage
+        if (completion.usage) {
+          const modelCosts = {
+            'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
+            'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
+            'default': { input: 0.0015, output: 0.002 }
+          };
+          
+          const costs = modelCosts[this.config.model] || modelCosts.default;
+          const promptCost = (completion.usage.prompt_tokens / 1000) * costs.input;
+          const completionCost = (completion.usage.completion_tokens / 1000) * costs.output;
+          const totalCost = promptCost + completionCost;
+
+          await this.costsService.logUsage({
+            timestamp: new Date().toISOString(),
+            model: this.config.model,
+            prompt_tokens: completion.usage.prompt_tokens,
+            completion_tokens: completion.usage.completion_tokens,
+            total_tokens: completion.usage.total_tokens,
+            cost: totalCost,
+            testId: test.id
           });
         }
 
+        const response = completion.choices[0]?.message?.content;
+        if (!response) {
+          throw new Error('Empty response from OpenAI');
+        }
+
+        console.log('7. Formatando resposta');
+        const formattedResponse = this.fixResponseFormat(response);
+        console.log('8. Resposta formatada:', JSON.stringify(formattedResponse, null, 2));
+        
+        return formattedResponse;
+
+      } catch (error) {
+        console.error('❌ Erro na chamada OpenAI:', error);
         throw error;
       }
+
     } catch (error) {
-      this.logger.error('Error generating response:', error);
+      console.error('❌ Erro em generateResponse:', error);
       throw error;
     }
   }
@@ -392,7 +410,7 @@ export class TinyTroupeService {
       });
 
       // Validação básica
-      if (!test.id || !test.content) {
+      if (!test.id) {
         throw new Error('Dados do teste incompletos');
       }
 
@@ -463,5 +481,165 @@ export class TinyTroupeService {
       });
       throw error;
     }
+  }
+
+  async runTestSimulation(test: Test, personas: Persona[], onMessage?: (message: any) => void): Promise<any> {
+    console.log('Iniciando simulação do teste:', test.id);
+    console.log('Personas para simulação:', personas.map(p => p.id));
+
+    try {
+      const results: { [key: string]: any } = {};
+      
+      for (const persona of personas) {
+        console.log(`Processando persona ${persona.id}`);
+        
+        try {
+          // Notificar início do processamento da persona
+          onMessage?.({
+            type: 'test_update',
+            data: {
+              status: 'processing',
+              currentPersona: persona.id,
+              message: `Processando persona ${persona.name}`
+            }
+          });
+
+          // Gerar resposta para a persona
+          const response = await this.generateResponse(persona.id, test, {});
+          console.log(`Resposta gerada para persona ${persona.id}:`, response);
+
+          // Salvar resultado
+          results[persona.id] = response;
+
+          // Notificar mensagem gerada
+          onMessage?.({
+            type: 'test_message',
+            data: {
+              personaId: persona.id,
+              ...response
+            }
+          });
+
+        } catch (error) {
+          console.error(`Erro ao processar persona ${persona.id}:`, error);
+          onMessage?.({
+            type: 'test_error',
+            data: {
+              personaId: persona.id,
+              error: error.message
+            }
+          });
+        }
+      }
+
+      console.log('Simulação concluída com sucesso');
+      return results;
+
+    } catch (error) {
+      console.error('Erro na simulação:', error);
+      throw error;
+    }
+  }
+
+  async generatePersonaTraits(basePersona: Partial<Persona>): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      const pythonProcess = spawn(this.config.pythonPath, [
+        this.config.scriptPath,
+        '--generate-traits',
+        '--base-persona', JSON.stringify(basePersona),
+        '--config', JSON.stringify({
+          api_key: this.config.apiKey,
+          model: this.config.model,
+          cache_enabled: this.config.cacheEnabled,
+          cache_dir: this.config.cacheDir,
+          logging_level: this.config.loggingLevel
+        })
+      ]);
+
+      let output = '';
+      let errorOutput = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        console.log('[TinyTroupe] Raw stdout data:', data.toString());
+        output += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        console.error('[TinyTroupe] stderr:', data.toString());
+        errorOutput += data.toString();
+      });
+
+      pythonProcess.on('close', (code) => {
+        console.log('[TinyTroupe] Process closed with code:', code);
+        console.log('[TinyTroupe] Final output:', output);
+        console.log('[TinyTroupe] Error output:', errorOutput);
+        
+        if (code !== 0) {
+          reject(new Error(`Trait generation failed: ${errorOutput}`));
+          return;
+        }
+        try {
+          console.log('[TinyTroupe] Attempting to parse output');
+          const traits = JSON.parse(output);
+          console.log('[TinyTroupe] Successfully parsed traits:', traits);
+          resolve(traits);
+        } catch (error) {
+          console.error('[TinyTroupe] Parse error:', error);
+          console.error('[TinyTroupe] Failed to parse output:', output);
+          reject(new Error('Failed to parse traits output'));
+        }
+      });
+    });
+  }
+
+  async createTinyPerson(persona: Persona): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const pythonProcess = spawn(this.config.pythonPath, [
+        this.config.scriptPath,
+        '--create-person',
+        '--persona', JSON.stringify(persona),
+        '--config', JSON.stringify({
+          api_key: this.config.apiKey,
+          model: this.config.model,
+          cache_enabled: this.config.cacheEnabled,
+          cache_dir: this.config.cacheDir,
+          logging_level: this.config.loggingLevel
+        })
+      ]);
+
+      let output = '';
+      let errorOutput = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        console.log('[TinyTroupe] Raw stdout data:', data.toString());
+        output += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        console.error('[TinyTroupe] stderr:', data.toString());
+        errorOutput += data.toString();
+      });
+
+      pythonProcess.on('close', (code) => {
+        console.log('[TinyTroupe] Process closed with code:', code);
+        console.log('[TinyTroupe] Final output:', output);
+        console.log('[TinyTroupe] Error output:', errorOutput);
+        
+        if (code !== 0) {
+          reject(new Error(`Person creation failed: ${errorOutput}`));
+          return;
+        }
+        try {
+          console.log('[TinyTroupe] Attempting to parse output');
+          const person = JSON.parse(output);
+          console.log('[TinyTroupe] Successfully parsed person:', person);
+          resolve(person);
+        } catch (error) {
+          console.error('[TinyTroupe] Parse error:', error);
+          console.error('[TinyTroupe] Failed to parse output:', output);
+          reject(new Error('Failed to parse person output'));
+        }
+      });
+    });
   }
 }

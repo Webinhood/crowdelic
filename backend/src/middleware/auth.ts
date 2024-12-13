@@ -1,36 +1,60 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { pool } from '../config/database';
+import { prisma } from '../config/database';
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-  };
+interface TokenPayload {
+  id: string;
+  email: string;
 }
 
-export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+declare global {
+  namespace Express {
+    interface Request {
+      user?: TokenPayload;
+      userRole?: string;
+    }
+  }
+}
+
+export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
-      return res.status(401).json({ error: 'No token, authorization denied' });
+    if (!authHeader) {
+      return res.status(401).json({ message: 'Token não fornecido' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret-key') as { id: string };
+    const parts = authHeader.split(' ');
+
+    if (parts.length !== 2) {
+      return res.status(401).json({ message: 'Token mal formatado' });
+    }
+
+    const [scheme, token] = parts;
+
+    if (!/^Bearer$/i.test(scheme)) {
+      return res.status(401).json({ message: 'Token mal formatado' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret') as TokenPayload;
     
-    // Check if user exists
-    const result = await pool.query(
-      'SELECT * FROM users WHERE id = $1',
-      [decoded.id]
-    );
+    // Buscar o usuário no banco para verificar se ainda existe e pegar o role atual
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, email: true, role: true }
+    });
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'User not found' });
+    if (!user) {
+      return res.status(401).json({ message: 'Usuário não encontrado' });
     }
 
-    req.user = { id: decoded.id };
-    next();
+    req.user = {
+      id: user.id,  // Use o ID do banco em vez do token
+      email: user.email
+    };
+    req.userRole = user.role;
+    return next();
   } catch (err) {
-    res.status(401).json({ error: 'Token is not valid' });
+    return res.status(401).json({ message: 'Token inválido' });
   }
 };

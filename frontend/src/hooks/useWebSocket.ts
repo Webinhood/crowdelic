@@ -1,171 +1,182 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL = 'http://localhost:3000';
+const RECONNECTION_ATTEMPTS = 5;
+const RECONNECTION_DELAY = 1000;
 
 export const useWebSocket = (testId: string) => {
-  console.log('[useWebSocket] Hook called with testId:', testId);
   const socketRef = useRef<Socket>();
-
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const testIdRef = useRef(testId);
+  
   useEffect(() => {
-    console.log('[useWebSocket] Effect running, current socket:', socketRef.current?.id);
-    
-    // Cleanup any existing socket before creating a new one
-    if (socketRef.current) {
-      console.log('[useWebSocket] Cleaning up existing socket');
-      socketRef.current.removeAllListeners();
-      socketRef.current.disconnect();
-      socketRef.current = undefined;
-    }
-
-    // Create new socket instance
-    console.log('[useWebSocket] Creating new socket connection');
-    const socket = io(SOCKET_URL, {
-      path: '/socket.io',
-      transports: ['websocket', 'polling'],
-      autoConnect: false,
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-      timeout: 10000,
-      withCredentials: true,
-      auth: {
-        token: localStorage.getItem('token')
-      }
-    });
-
-    socketRef.current = socket;
-
-    // Setup connection event handlers
-    socket.on('connect', () => {
-      console.log('[useWebSocket] Socket connected successfully:', socket.id);
-      console.log('[useWebSocket] Joining test room:', testId);
-      socket.emit('joinTest', testId);
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.log('[useWebSocket] Socket disconnected. Reason:', reason);
-    });
-
-    socket.on('error', (error) => {
-      console.error('[useWebSocket] Socket error:', error);
-    });
-
-    socket.on('connect_error', (error) => {
-      console.error('[useWebSocket] Connection error:', error.message);
-      // Tentar reconectar após erro de conexão
-      setTimeout(() => {
-        console.log('[useWebSocket] Attempting to reconnect...');
-        socket.connect();
-      }, 2000);
-    });
-
-    // Iniciar a conexão
-    console.log('[useWebSocket] Initiating socket connection...');
-    socket.connect();
-
-    // Cleanup on unmount
-    return () => {
-      console.log('[useWebSocket] Cleaning up socket connection');
-      if (socket.connected) {
-        console.log('[useWebSocket] Leaving test room:', testId);
-        socket.emit('leaveTest', testId);
-      }
-      socket.removeAllListeners();
-      socket.disconnect();
-      socketRef.current = undefined;
-    };
+    testIdRef.current = testId;
   }, [testId]);
 
+  // Função para criar socket com configurações otimizadas
+  const createSocket = useCallback(() => {
+    if (!testIdRef.current) return null;
+
+    return io(SOCKET_URL, {
+      transports: ['websocket'],
+      query: { testId: testIdRef.current },
+      reconnection: true,
+      reconnectionAttempts: RECONNECTION_ATTEMPTS,
+      reconnectionDelay: RECONNECTION_DELAY,
+      timeout: 10000
+    });
+  }, []);
+
+  useEffect(() => {
+    let socket: Socket | null = null;
+    let reconnectTimer: NodeJS.Timeout;
+
+    const connect = () => {
+      if (connectionAttempts >= RECONNECTION_ATTEMPTS) {
+        console.warn('[useWebSocket] Max reconnection attempts reached');
+        return;
+      }
+
+      if (socketRef.current?.connected) {
+        console.log('[useWebSocket] Already connected');
+        return;
+      }
+
+      // Limpa conexão anterior
+      if (socketRef.current) {
+        console.log('[useWebSocket] Cleaning up previous connection');
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+        socketRef.current = undefined;
+      }
+
+      socket = createSocket();
+      if (!socket) {
+        console.warn('[useWebSocket] Failed to create socket');
+        return;
+      }
+
+      // Log all incoming events
+      socket.onAny((eventName, ...args) => {
+        console.log(`[useWebSocket] Received event: ${eventName}`, args);
+      });
+
+      socket.on('connect', () => {
+        console.log('[useWebSocket] Connected successfully. Socket ID:', socket?.id);
+        setIsConnected(true);
+        setConnectionAttempts(0);
+
+        // Join test room after connection
+        if (testIdRef.current) {
+          console.log('[useWebSocket] Joining test room:', testIdRef.current);
+          socket?.emit('joinTest', testIdRef.current);
+        }
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('[useWebSocket] Disconnected. Reason:', reason);
+        setIsConnected(false);
+        
+        // Tenta reconectar
+        setConnectionAttempts(prev => prev + 1);
+        reconnectTimer = setTimeout(() => {
+          connect();
+        }, RECONNECTION_DELAY);
+      });
+
+      socket.on('error', (error) => {
+        console.error('[useWebSocket] Socket error:', error);
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('[useWebSocket] Connection error:', error);
+        setConnectionAttempts(prev => prev + 1);
+      });
+
+      socketRef.current = socket;
+    };
+
+    console.log('[useWebSocket] Setting up socket connection for testId:', testIdRef.current);
+    connect();
+
+    return () => {
+      console.log('[useWebSocket] Cleaning up socket connection');
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      if (socketRef.current) {
+        if (testIdRef.current) {
+          console.log('[useWebSocket] Leaving test room:', testIdRef.current);
+          socketRef.current.emit('leaveTest', testIdRef.current);
+        }
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+        socketRef.current = undefined;
+      }
+      setIsConnected(false);
+      setConnectionAttempts(0);
+    };
+  }, [createSocket]);
+
   const onTestMessage = useCallback((callback: (message: any) => void) => {
-    if (!socketRef.current) {
-      console.warn('[useWebSocket] Socket not initialized when setting up testMessage listener');
-      return () => {};
+    console.log('[useWebSocket] Registering testMessage handler');
+    if (socketRef.current) {
+      socketRef.current.on('testMessage', (...args) => {
+        console.log('[useWebSocket] Received testMessage:', args);
+        callback(...args);
+      });
     }
-    
-    console.log('[useWebSocket] Setting up test_message listener');
-    
-    const messageHandler = (message: any) => {
-      console.log('[useWebSocket] Test message received:', message);
-      callback(message);
-    };
-    
-    socketRef.current.on('testMessage', messageHandler);
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('testMessage', messageHandler);
-      }
-    };
   }, []);
 
-  const onTestError = useCallback((callback: (error: Error) => void) => {
-    if (!socketRef.current) {
-      console.warn('Socket not initialized');
-      return () => {};
+  const onTestError = useCallback((callback: (error: any) => void) => {
+    console.log('[useWebSocket] Registering testError handler');
+    if (socketRef.current) {
+      socketRef.current.on('testError', (...args) => {
+        console.log('[useWebSocket] Received testError:', args);
+        callback(...args);
+      });
     }
-
-    console.log('Setting up test_error listener');
-    const errorHandler = (error: any) => {
-      console.log('Received test_error:', error);
-      callback(error);
-    };
-
-    socketRef.current.on('testError', errorHandler);
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('testError', errorHandler);
-      }
-    };
-  }, []);
-
-  const onTestComplete = useCallback((callback: (results: any) => void) => {
-    if (!socketRef.current) {
-      console.warn('Socket not initialized');
-      return () => {};
-    }
-
-    console.log('Setting up test_complete listener');
-    const completeHandler = (results: any) => {
-      console.log('Received test_complete:', results);
-      callback(results);
-    };
-
-    socketRef.current.on('testComplete', completeHandler);
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('testComplete', completeHandler);
-      }
-    };
   }, []);
 
   const onTestUpdate = useCallback((callback: (update: any) => void) => {
-    if (!socketRef.current) {
-      console.warn('[useWebSocket] Socket not initialized');
-      return () => {};
+    console.log('[useWebSocket] Registering testUpdate handler');
+    if (socketRef.current) {
+      socketRef.current.on('testUpdate', (...args) => {
+        console.log('[useWebSocket] Received testUpdate:', args);
+        callback(...args);
+      });
     }
-    
-    console.log('[useWebSocket] Setting up test_update listener');
-    const updateHandler = (update: any) => {
-      console.log('[useWebSocket] Test update received:', update);
-      callback(update);
-    };
+  }, []);
 
-    socketRef.current.on('testUpdate', updateHandler);
+  const onTestComplete = useCallback((callback: (results: any) => void) => {
+    console.log('[useWebSocket] Registering testComplete handler');
+    if (socketRef.current) {
+      socketRef.current.on('testComplete', (...args) => {
+        console.log('[useWebSocket] Received testComplete:', args);
+        callback(...args);
+      });
+    }
+  }, []);
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('testUpdate', updateHandler);
-      }
-    };
+  const disconnect = useCallback(() => {
+    console.log('[useWebSocket] Manual disconnect called');
+    if (socketRef.current) {
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
+      socketRef.current = undefined;
+      setIsConnected(false);
+      setConnectionAttempts(0);
+    }
   }, []);
 
   return {
+    isConnected,
     onTestMessage,
     onTestError,
+    onTestUpdate,
     onTestComplete,
-    onTestUpdate
+    disconnect,
   };
 };

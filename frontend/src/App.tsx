@@ -5,6 +5,7 @@ import { Layout } from '@components/Layout';
 import ErrorBoundary from '@components/ErrorBoundary';
 import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
 import { LanguageProvider } from '@contexts/LanguageContext';
+import { NavigationProvider } from './contexts/NavigationContext';
 import { theme } from './theme/theme';
 import Fonts from './theme/fonts';
 import {
@@ -19,7 +20,8 @@ import {
   TestEdit,
   TestDetail,
   Costs,
-  Landing
+  Landing,
+  UserManagement
 } from './config/lazyRoutes';
 
 const App = () => {
@@ -34,43 +36,74 @@ const App = () => {
       <ColorModeScript initialColorMode={theme.config.initialColorMode} />
       <Fonts />
       <LanguageProvider>
-        <ErrorBoundary>
-          <Routes>
-            {/* Public Routes */}
-            <Route
-              path="/"
-              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />}
-            />
-            <Route
-              path="/login"
-              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
-            />
-            <Route
-              path="/register"
-              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />}
-            />
-            
-            {/* Protected Routes */}
-            <Route element={isAuthenticated ? <Layout /> : <Navigate to="/" replace />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/personas">
-                <Route index element={<PersonaList />} />
-                <Route path="create" element={<PersonaCreate />} />
-                <Route path=":id/edit" element={<PersonaEdit />} />
+        <NavigationProvider>
+          <ErrorBoundary>
+            <Routes>
+              {/* Public Routes */}
+              <Route
+                path="/"
+                element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />}
+              />
+              <Route
+                path="/login"
+                element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+              />
+              <Route
+                path="/register"
+                element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />}
+              />
+              
+              {/* Protected Routes */}
+              <Route element={<Layout />}>
+                <Route
+                  path="/dashboard"
+                  element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                />
+                {/* Personas Routes */}
+                <Route
+                  path="/personas/create"
+                  element={isAuthenticated ? <PersonaCreate /> : <Navigate to="/login" replace />}
+                />
+                <Route
+                  path="/personas/:id/edit"
+                  element={isAuthenticated ? <PersonaEdit /> : <Navigate to="/login" replace />}
+                />
+                <Route
+                  path="/personas"
+                  element={isAuthenticated ? <PersonaList /> : <Navigate to="/login" replace />}
+                />
+                {/* Tests Routes */}
+                <Route
+                  path="/tests/create"
+                  element={isAuthenticated ? <TestCreate /> : <Navigate to="/login" replace />}
+                />
+                <Route
+                  path="/tests/:id/edit"
+                  element={isAuthenticated ? <TestEdit /> : <Navigate to="/login" replace />}
+                />
+                <Route
+                  path="/tests/:id"
+                  element={isAuthenticated ? <TestDetail /> : <Navigate to="/login" replace />}
+                />
+                <Route
+                  path="/tests"
+                  element={isAuthenticated ? <TestList /> : <Navigate to="/login" replace />}
+                />
+                <Route
+                  path="/costs"
+                  element={isAuthenticated ? <Costs /> : <Navigate to="/login" replace />}
+                />
+                <Route
+                  path="/users"
+                  element={isAuthenticated ? <UserManagement /> : <Navigate to="/login" replace />}
+                />
               </Route>
-              <Route path="/tests">
-                <Route index element={<TestList />} />
-                <Route path="create" element={<TestCreate />} />
-                <Route path=":id" element={<TestDetail />} />
-                <Route path=":id/edit" element={<TestEdit />} />
-              </Route>
-              <Route path="/costs" element={<Costs />} />
-            </Route>
 
-            {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </ErrorBoundary>
+              {/* Catch all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </ErrorBoundary>
+        </NavigationProvider>
       </LanguageProvider>
     </ChakraProvider>
   );

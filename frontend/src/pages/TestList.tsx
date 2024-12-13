@@ -59,8 +59,8 @@ const TestList = () => {
   const { data: tests = [], isLoading, error } = useQuery({
     queryKey: ['tests'],
     queryFn: getTests,
-    staleTime: 0, // Sempre busca dados novos
-    cacheTime: 0, // Não mantém cache
+    staleTime: 1000 * 60, // 1 minuto
+    refetchOnWindowFocus: false
   });
 
   const deleteMutation = useMutation({
@@ -259,20 +259,22 @@ const TestList = () => {
     <Box minH="100vh" w="100%" bg={bgColor}>
       <Container maxW="100%" px={4} py={8}>
         <VStack spacing={8} align="stretch" w="100%">
-          <Flex justifyContent="space-between" alignItems="center" mb={6}>
-            <Heading size="lg" color={textColor}>
-              {t('tests.title', 'Testes')}
-            </Heading>
+          <Flex justify="space-between" align="center" mb={6}>
+            <Box>
+              <Heading size="lg" color={textColor}>
+                {t('tests.list.title')}
+              </Heading>
+              <Text color={secondaryTextColor} mt={1}>
+                {t('tests.list.description')}
+              </Text>
+            </Box>
             <Button
               leftIcon={<FiPlus />}
-              onClick={() => navigate('/tests/new')}
-              bg={buttonBgColor}
-              color={buttonTextColor}
-              _hover={{ bg: buttonHoverBgColor }}
-              _active={{ bg: buttonHoverBgColor }}
-              fontWeight="semibold"
+              onClick={() => navigate('/tests/create')}
+              colorScheme="teal"
+              size="md"
             >
-              {t('tests.newTest', 'Novo Teste')}
+              {t('tests.create.button')}
             </Button>
           </Flex>
 

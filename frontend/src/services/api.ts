@@ -6,7 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true
+  timeout: 300000 // 5 minutos
 });
 
 // Request interceptor for adding auth token
@@ -24,33 +24,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const apiError = ApiError.fromAxiosError(error);
-    
-    // Log error with relevant information only
-    console.error('API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: apiError.status,
-      code: apiError.code,
-      message: apiError.message,
-      ...(apiError.details && { details: apiError.details })
-    });
-    
-    // Handle authentication errors
-    if (apiError.status === 401 && !error.config?.url?.includes('/auth/login')) {
-      console.log('Unauthorized request, clearing token');
+    // If token is invalid or expired, clear it
+    if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      // Não redirecionar automaticamente, deixar o AuthContext lidar com isso
-      return Promise.reject(apiError);
     }
-    
-    throw apiError;
+    throw ApiError.fromAxiosError(error);
   }
 );
 
 export const deleteTestMessage = async (testId: string, messageId: string): Promise<void> => {
-  const response = await api.delete(`/tests/${testId}/messages/${messageId}`);
-  return response.data;
+  await api.delete(`/tests/${testId}/messages/${messageId}`);
 };
 
 export default api;

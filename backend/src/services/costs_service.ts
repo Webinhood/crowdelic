@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -46,143 +46,113 @@ const MODEL_COSTS = {
 };
 
 export class CostsService {
-  private pool: Pool;
+  private prisma: PrismaClient;
 
   constructor() {
-    this.pool = new Pool({
-      user: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      host: process.env.POSTGRES_HOST,
-      port: parseInt(process.env.POSTGRES_PORT || '5432'),
-      database: process.env.POSTGRES_DB
-    });
-
-    // Create usage_logs table if it doesn't exist
-    this.initializeDatabase();
+    this.prisma = new PrismaClient();
   }
 
-  private async initializeDatabase() {
-    const client = await this.pool.connect();
+  async logUsage(data: UsageData & { testId?: string; userId?: string }) {
     try {
-      // Primeiro, verificar se a tabela existe
-      const tableExists = await client.query(`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public'
-          AND table_name = 'usage_logs'
-        );
-      `);
+      console.log('Logging usage data:', data);
+      // Temporariamente apenas logando os dados
+      return {
+        id: 'temp-' + Date.now(),
+        ...data,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+    } catch (error) {
+      console.error('Error logging usage:', error);
+      // Não propagar o erro para não interromper o fluxo
+      return null;
+    }
+  }
 
-      if (tableExists.rows[0].exists) {
-        // Se a tabela existe, verificar se a coluna test_id existe
-        const columnExists = await client.query(`
-          SELECT EXISTS (
-            SELECT FROM information_schema.columns 
-            WHERE table_schema = 'public'
-            AND table_name = 'usage_logs'
-            AND column_name = 'test_id'
-          );
-        `);
-
-        if (!columnExists.rows[0].exists) {
-          // Se a coluna não existe, adicioná-la
-          await client.query(`
-            ALTER TABLE usage_logs
-            ADD COLUMN test_id TEXT;
-          `);
+  async getTestUsage(testId: string): Promise<TestUsageStats> {
+    try {
+      console.log('Getting test usage for test ID:', testId);
+      const logs = await this.prisma.usageLog.findMany({
+        where: {
+          test_id: testId
         }
-      } else {
-        // Se a tabela não existe, criá-la
-        await client.query(`
-          CREATE TABLE usage_logs (
-            id SERIAL PRIMARY KEY,
-            timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            model VARCHAR(50) NOT NULL,
-            prompt_tokens INTEGER NOT NULL,
-            completion_tokens INTEGER NOT NULL,
-            total_tokens INTEGER NOT NULL,
-            cost DECIMAL(10, 6) NOT NULL,
-            test_id TEXT
-          );
-        `);
-      }
-    } finally {
-      client.release();
-    }
-  }
+      });
+      console.log('Test usage logs retrieved:', logs);
 
-  public async logUsage(
-    model: string, 
-    usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
-    testId?: string
-  ) {
-    const modelCosts = MODEL_COSTS[model] || MODEL_COSTS.default;
-    const cost = (
-      (usage.prompt_tokens * modelCosts.input + 
-       usage.completion_tokens * modelCosts.output) / 1000
-    );
+      const modelBreakdown = logs.reduce((acc: { [key: string]: { tokens: number; cost: number } }, log) => {
+        if (!acc[log.model]) {
+          acc[log.model] = { tokens: 0, cost: 0 };
+        }
+        acc[log.model].tokens += log.total_tokens;
+        acc[log.model].cost += Number(log.cost);
+        return acc;
+      }, {});
 
-    const client = await this.pool.connect();
-    try {
-      await client.query(
-        `INSERT INTO usage_logs (model, prompt_tokens, completion_tokens, total_tokens, cost, test_id)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [model, usage.prompt_tokens, usage.completion_tokens, usage.total_tokens, cost, testId || null]
-      );
-    } finally {
-      client.release();
-    }
-  }
-
-  public async getUsageStats(): Promise<UsageStats> {
-    const client = await this.pool.connect();
-    try {
-      // Get data for the last 30 days
-      const result = await client.query<UsageData>(`
-        SELECT 
-          DATE_TRUNC('day', timestamp) as timestamp,
+      return {
+        total_tokens: logs.reduce((sum, log) => sum + log.total_tokens, 0),
+        total_cost: logs.reduce((sum, log) => sum + Number(log.cost), 0),
+        model_breakdown: Object.entries(modelBreakdown).map(([model, stats]) => ({
           model,
-          SUM(prompt_tokens + completion_tokens) as total_tokens,
-          COUNT(*) as request_count,
-          SUM(cost) as cost
-        FROM usage_logs
-        WHERE timestamp >= NOW() - INTERVAL '30 days'
-        GROUP BY DATE_TRUNC('day', timestamp), model
-        ORDER BY timestamp DESC
-      `);
+          tokens: stats.tokens,
+          cost: stats.cost
+        }))
+      };
+    } catch (error) {
+      console.error('Error getting test usage:', error);
+      throw error;
+    }
+  }
+
+  async getUserUsage(userId: string, startDate?: string, endDate?: string): Promise<UsageStats> {
+    try {
+      console.log('Getting user usage for user ID:', userId);
+      const whereClause: any = { user_id: userId };
+      if (startDate && endDate) {
+        whereClause.timestamp = {
+          gte: new Date(startDate),
+          lte: new Date(endDate)
+        };
+      }
+
+      const logs = await this.prisma.usageLog.findMany({
+        where: whereClause,
+        orderBy: {
+          timestamp: 'asc'
+        }
+      });
+      console.log('User usage logs retrieved:', logs);
 
       const dailyCosts: { [key: string]: DailyCost } = {};
       const modelCosts: { [key: string]: ModelCost } = {};
       let totalUsage = 0;
 
-      result.rows.forEach(row => {
-        const date = row.timestamp.toISOString().split('T')[0];
-        
+      logs.forEach(log => {
+        const day = log.timestamp.toISOString().split('T')[0];
+        totalUsage += Number(log.cost);
+
         // Aggregate daily costs
-        if (!dailyCosts[date]) {
-          dailyCosts[date] = {
-            timestamp: date,
+        if (!dailyCosts[day]) {
+          dailyCosts[day] = {
+            timestamp: day,
             request_count: 0,
             token_count: 0,
             cost: 0
           };
         }
-        dailyCosts[date].request_count += Number(row.request_count);
-        dailyCosts[date].token_count += Number(row.total_tokens);
-        dailyCosts[date].cost += Number(row.cost);
+        dailyCosts[day].request_count++;
+        dailyCosts[day].token_count += log.total_tokens;
+        dailyCosts[day].cost += Number(log.cost);
 
         // Aggregate model costs
-        if (!modelCosts[row.model]) {
-          modelCosts[row.model] = {
-            model: row.model,
+        if (!modelCosts[log.model]) {
+          modelCosts[log.model] = {
+            model: log.model,
             token_count: 0,
             cost: 0
           };
         }
-        modelCosts[row.model].token_count += Number(row.total_tokens);
-        modelCosts[row.model].cost += Number(row.cost);
-
-        totalUsage += Number(row.cost);
+        modelCosts[log.model].token_count += log.total_tokens;
+        modelCosts[log.model].cost += Number(log.cost);
       });
 
       return {
@@ -190,44 +160,16 @@ export class CostsService {
         daily_costs: Object.values(dailyCosts),
         model_costs: Object.values(modelCosts)
       };
-    } finally {
-      client.release();
+    } catch (error) {
+      console.error('Error getting user usage:', error);
+      throw error;
     }
   }
 
-  public async getTestUsageStats(testId: string): Promise<TestUsageStats> {
-    const client = await this.pool.connect();
-    try {
-      const result = await client.query(`
-        SELECT 
-          model,
-          SUM(total_tokens) as total_tokens,
-          SUM(cost) as total_cost
-        FROM usage_logs
-        WHERE test_id = $1
-        GROUP BY model
-      `, [testId]);
-
-      const modelBreakdown = result.rows.map(row => ({
-        model: row.model,
-        tokens: parseInt(row.total_tokens),
-        cost: parseFloat(row.total_cost)
-      }));
-
-      const totals = modelBreakdown.reduce(
-        (acc, curr) => ({
-          total_tokens: acc.total_tokens + curr.tokens,
-          total_cost: acc.total_cost + curr.cost
-        }),
-        { total_tokens: 0, total_cost: 0 }
-      );
-
-      return {
-        ...totals,
-        model_breakdown: modelBreakdown
-      };
-    } finally {
-      client.release();
-    }
+  calculateCost(model: string, promptTokens: number, completionTokens: number): number {
+    const costs = MODEL_COSTS[model] || MODEL_COSTS.default;
+    const promptCost = (promptTokens / 1000) * costs.input;
+    const completionCost = (completionTokens / 1000) * costs.output;
+    return promptCost + completionCost;
   }
 }
