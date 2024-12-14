@@ -75,8 +75,10 @@ export const getPersonasByIds = async (ids: string[]): Promise<Persona[]> => {
   }
 
   try {
-    const idsString = ids.join(',');
-    const response = await api.get(`/personas/batch?ids=${idsString}`);
+    const params = new URLSearchParams();
+    ids.forEach(id => params.append('ids', id));
+    
+    const response = await api.get(`/personas/batch?${params.toString()}`);
     if (!response.data) {
       console.warn('No personas found for ids:', ids);
       return [];

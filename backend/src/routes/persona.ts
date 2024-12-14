@@ -33,6 +33,7 @@ router.get('/batch', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'IDs parameter is required' });
     }
 
+    // Garantir que temos um array de IDs
     const ids = Array.isArray(idsParam) ? idsParam : [idsParam];
     console.log('Fetching personas for IDs:', ids);
 
@@ -40,52 +41,12 @@ router.get('/batch', verifyToken, async (req, res) => {
       where: {
         id: { in: ids },
         deleted_at: null,
-        OR: [
-          { user_id: (req as any).user.id },
-          { is_public: true }
-        ]
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        occupation: true,
-        age: true,
-        background_story: true,
-        goals: true,
-        interests: true,
-        traits: true,
-        education: true,
-        income: true,
-        location: true,
-        family_status: true,
-        daily_routine: true,
-        challenges: true,
-        frustrations: true,
-        habits: true,
-        digital_skills: true,
-        spending_habits: true,
-        decision_factors: true,
-        personality_traits: true,
-        created_at: true,
-        updated_at: true,
-        user_id: true,
-        is_public: true
+        user_id: (req as any).user.id
       }
     });
 
     console.log('Found personas:', personas);
-
-    if (personas.length === 0) {
-      return res.status(404).json({ error: 'No personas found' });
-    }
-
-    res.json(personas.map(persona => ({
-      ...persona,
-      traits: persona.traits || [],
-      goals: persona.goals || [],
-      interests: persona.interests || []
-    })));
+    res.json(personas);
   } catch (err) {
     console.error('Error getting personas by IDs:', err);
     res.status(500).json({ error: 'Server error' });

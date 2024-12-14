@@ -30,6 +30,13 @@ const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ persona, isVisible, c
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const secondaryTextColor = useColorModeValue('gray.500', 'gray.400');
 
+  console.log('[ThinkingMessage] Rendering:', {
+    persona: persona.name,
+    isVisible,
+    compact,
+    currentStateIndex
+  });
+
   const thinkingStates = [
     'Analisando conteúdo',  
     'Refletindo sobre o objetivo',
@@ -67,6 +74,12 @@ const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ persona, isVisible, c
   };
 
   useEffect(() => {
+    console.log('[ThinkingMessage] Visibility changed:', {
+      persona: persona.name,
+      isVisible,
+      compact
+    });
+
     if (isVisible) {
       startThinkingAnimation();
     } else {

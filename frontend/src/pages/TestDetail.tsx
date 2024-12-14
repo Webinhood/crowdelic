@@ -110,6 +110,9 @@ const TestDetail = () => {
   const { data: personas = [], isLoading: isLoadingPersonas } = useQuery({
     queryKey: ['personas', test?.personaIds],
     queryFn: async () => {
+      console.log('[TestDetail] Starting persona query with test:', test);
+      console.log('[TestDetail] personaIds from test:', test?.personaIds);
+      
       if (!test?.personaIds?.length) {
         console.log('[TestDetail] No persona IDs available in test data');
         return [];
@@ -124,26 +127,26 @@ const TestDetail = () => {
         throw error;
       }
     },
-    enabled: !!test?.personaIds?.length
+    enabled: !!test?.personaIds?.length,
+    staleTime: 0,
+    cacheTime: 0
   });
 
   // Atualizar thinkingPersonas quando o teste estiver em execução
   useEffect(() => {
-    console.log('[TestDetail] Checking test status for thinking personas:', {
+    console.log('[TestDetail] Effect - Test Status Changed:', {
       testStatus: test?.status,
-      personas: personas.map(p => p.id)
+      personaIds: personas.map(p => p.id),
+      currentThinkingPersonas: Array.from(thinkingPersonas)
     });
     
     if (test?.status === 'running') {
-      console.log('[TestDetail] Test status is running, setting thinking personas:', personas.map(p => p.id));
       // Adicionar todas as personas ao conjunto de "thinking"
       const newThinkingPersonas = new Set(personas.map(p => p.id));
+      console.log('[TestDetail] Setting thinking personas:', Array.from(newThinkingPersonas));
       setThinkingPersonas(newThinkingPersonas);
-      
-      console.log('[TestDetail] New thinking personas set:', Array.from(newThinkingPersonas));
     } else {
-      console.log('[TestDetail] Test status is not running, clearing thinking personas');
-      // Limpar o conjunto quando o teste não estiver em execução
+      console.log('[TestDetail] Clearing thinking personas');
       setThinkingPersonas(new Set());
     }
   }, [test?.status, personas]);
@@ -321,22 +324,22 @@ const TestDetail = () => {
 
   const runMutation = useMutation({
     mutationFn: () => {
-      console.log('Iniciando mutação de execução do teste');
+      console.log('[TestDetail] Starting test execution');
       return runTest(id!);
     },
     onMutate: async () => {
-      console.log('onMutate - Preparando execução');
+      console.log('[TestDetail] onMutate - Preparing execution');
       toast.closeAll();
       const previousTest = queryClient.getQueryData(['test', id]);
       return { previousTest };
     },
     onError: (error) => {
-      console.error('Erro na mutação:', error);
+      console.error('[TestDetail] Test execution error:', error);
       handleError(error);
       queryClient.setQueryData(['test', id], context?.previousTest);
     },
     onSuccess: () => {
-      console.log('Teste iniciado com sucesso');
+      console.log('[TestDetail] Test started successfully');
       queryClient.invalidateQueries({ queryKey: ['test', id] });
       queryClient.invalidateQueries({ queryKey: ['testMessages', id] });
     }
@@ -394,8 +397,8 @@ const TestDetail = () => {
           messages={messages}
           personas={personas}
           personaStatus={personaStatus}
-          isRunning={test.status === 'running'}
-          thinkingPersonas={thinkingPersonas}
+          is_running={test?.status === 'running'}
+          thinking_personas={thinkingPersonas}
           onDeleteMessage={handleDeleteMessage}
         />
       </Box>
@@ -442,6 +445,15 @@ const TestDetail = () => {
       </Card>
     );
   };
+
+  // Adicionar log para monitorar alterações no test.status
+  useEffect(() => {
+    console.log('[TestDetail] Test status changed:', {
+      status: test?.status,
+      thinkingPersonasSize: thinkingPersonas.size,
+      personaCount: personas.length
+    });
+  }, [test?.status]);
 
   if (isLoadingTest || !test) {
     return (

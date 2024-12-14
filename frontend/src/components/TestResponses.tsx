@@ -31,7 +31,7 @@ import { Persona } from '../types/persona';
 import { FaFilter, FaSearch, FaSort } from 'react-icons/fa';
 
 interface PersonaStatus {
-  personaId: string;
+  persona_id: string;
   status: 'pending' | 'running' | 'completed' | 'error';
   result?: any;
   error?: string;
@@ -40,10 +40,10 @@ interface PersonaStatus {
 interface TestResponsesProps {
   messages: TestMessageType[];
   personas: Persona[];
-  personaStatus?: PersonaStatus[];
-  isRunning: boolean;
-  thinkingPersonas: Set<string>;
-  onDeleteMessage?: (messageId: string) => void;
+  persona_status?: PersonaStatus[];
+  is_running: boolean;
+  thinking_personas: Set<string>;
+  onDeleteMessage?: (message_id: string) => void;
 }
 
 const MotionBox = motion(Box);
@@ -52,9 +52,9 @@ const MotionProgress = motion(Progress);
 const TestResponses: React.FC<TestResponsesProps> = ({
   messages,
   personas,
-  personaStatus = [],
-  isRunning,
-  thinkingPersonas,
+  persona_status = [],
+  is_running = false,
+  thinking_personas = new Set(),
   onDeleteMessage,
 }) => {
   const { t } = useTranslation();
@@ -150,36 +150,13 @@ const TestResponses: React.FC<TestResponsesProps> = ({
 
   // Calcular progresso geral
   const progress = React.useMemo(() => {
-    if (!personaStatus.length) return 0;
-    const completed = personaStatus.filter(s => s.status === 'completed').length;
-    return (completed / personaStatus.length) * 100;
-  }, [personaStatus]);
+    if (!persona_status.length) return 0;
+    const completed = persona_status.filter(s => s.status === 'completed').length;
+    return (completed / persona_status.length) * 100;
+  }, [persona_status]);
 
   return (
     <Box>
-      {/* Barra de progresso geral */}
-      <AnimatePresence>
-        {isRunning && (
-          <MotionBox
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            mb={4}
-          >
-            <MotionProgress
-              value={progress}
-              size="sm"
-              colorScheme="blue"
-              hasStripe
-              isAnimated
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.5 }}
-            />
-          </MotionBox>
-        )}
-      </AnimatePresence>
-
       {/* Barra de filtros e busca */}
       <Box mb={4} p={4} bg={bgColor} borderRadius="md" borderWidth={1} borderColor={borderColor}>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
@@ -212,9 +189,9 @@ const TestResponses: React.FC<TestResponsesProps> = ({
           <AnimatePresence>
             {filteredPersonas.map(persona => {
               const personaMessages = messagesByPersona.get(persona.id) || [];
-              const status = personaStatus.find(s => s.personaId === persona.id);
-              const isThinking = isRunning && thinkingPersonas.has(persona.id);
-              
+              const status = persona_status.find(s => s.persona_id === persona.id);
+              const isThinking = is_running && thinking_personas.has(persona.id);
+                            
               return (
                 <MotionBox
                   key={persona.id}
@@ -230,19 +207,27 @@ const TestResponses: React.FC<TestResponsesProps> = ({
                     bg={bgColor}
                   >
                     <AccordionButton p={4}>
-                      <HStack flex="1" spacing={4}>
-                        <Avatar 
-                          name={persona.name} 
-                          src={persona.avatar} 
-                          size="sm"
-                          loading="lazy"
-                        />
-                        <VStack flex="1" align="start" spacing={1}>
-                          <Text fontWeight="bold">{persona.name}</Text>
-                          <Text fontSize="sm" color="gray.500">
-                            {persona.occupation} • {personaMessages.length} {t('test.messages.count')}
-                          </Text>
-                          {isThinking && (
+                      <VStack flex="1" align="stretch" spacing={2}>
+                        <HStack flex="1" spacing={4}>
+                          <Avatar 
+                            name={persona.name} 
+                            src={persona.avatar} 
+                            size="sm"
+                            loading="lazy"
+                          />
+                          <VStack flex="1" align="start" spacing={1}>
+                            <Text fontWeight="bold">{persona.name}</Text>
+                            <Text fontSize="sm" color="gray.500">
+                              {persona.occupation} • {personaMessages.length} {t('test.messages.count')}
+                            </Text>
+                          </VStack>
+                          <Box display="flex" alignItems="center">
+                            {renderStatusBadge(status?.status)}
+                            <AccordionIcon ml={2} />
+                          </Box>
+                        </HStack>
+                        {isThinking && (
+                          <Box>
                             <ThinkingMessage
                               persona={{
                                 name: persona.name,
@@ -252,13 +237,9 @@ const TestResponses: React.FC<TestResponsesProps> = ({
                               isVisible={true}
                               compact={true}
                             />
-                          )}
-                        </VStack>
-                        <Box display="flex" alignItems="center">
-                          {renderStatusBadge(status?.status)}
-                        </Box>
-                      </HStack>
-                      <AccordionIcon />
+                          </Box>
+                        )}
+                      </VStack>
                     </AccordionButton>
                     <AccordionPanel pb={4}>
                       <VStack spacing={4} align="stretch">

@@ -65,7 +65,23 @@ const formatTestData = (test: any) => {
     results = [];
   }
   
-  const personaIds = [...new Set((parseJsonField(test.persona_ids, [])).map(String))];
+  // Tratar persona_ids
+  let personaIds = [];
+  try {
+    if (test.persona_ids) {
+      if (typeof test.persona_ids === 'string') {
+        personaIds = JSON.parse(test.persona_ids);
+      } else if (Array.isArray(test.persona_ids)) {
+        personaIds = test.persona_ids;
+      }
+    }
+    // Garantir que todos os IDs sejam strings e únicos
+    personaIds = [...new Set(personaIds.map(String))];
+  } catch (e) {
+    console.error('Error parsing persona_ids:', e);
+    personaIds = [];
+  }
+
   const topics = parseJsonField(test.topics, []);
   
   // Parse objects
