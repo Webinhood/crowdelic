@@ -53,14 +53,25 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { Test } from '@types/test';
 import { Persona } from '@types/persona';
 import { TestViewOptions, TestMessage as TestMessageType } from '../types/test';
+import { useNavigation } from '../contexts/NavigationContext';
 
 const TestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { setHandleTestDetailNavigate } = useNavigation();
   const toast = useToast();
   const queryClient = useQueryClient();
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
+
+  useEffect(() => {
+    setHandleTestDetailNavigate((path: string) => {
+      navigate(path);
+    });
+    return () => {
+      setHandleTestDetailNavigate(undefined);
+    };
+  }, [navigate, setHandleTestDetailNavigate]);
 
   const [liveMessages, setLiveMessages] = React.useState<TestMessageType[]>([]);
   const [viewOptions, setViewOptions] = React.useState<TestViewOptions>({
@@ -323,9 +334,13 @@ const TestDetail = () => {
   });
 
   const runMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       console.log('[TestDetail] Starting test execution');
-      return runTest(id!);
+      const runTestData = {
+        ...test,
+        personaIds: personas.map(p => p.id),
+      };
+      return runTest(id!, runTestData);
     },
     onMutate: async () => {
       console.log('[TestDetail] onMutate - Preparing execution');
@@ -400,6 +415,7 @@ const TestDetail = () => {
           is_running={test?.status === 'running'}
           thinking_personas={thinkingPersonas}
           onDeleteMessage={handleDeleteMessage}
+          testId={id!} // Passar o ID do teste
         />
       </Box>
     );
@@ -467,6 +483,27 @@ const TestDetail = () => {
     <Box minH="100vh" w="100%" bg={useColorModeValue('gray.50', 'gray.900')} p={8}>
       <Container maxW="container.xl">
         <VStack spacing={8} align="stretch">
+          {/* Barra de Navegação */}
+          <HStack spacing={4} justify="space-between" w="100%">
+            <Button
+              leftIcon={<FaArrowLeft />}
+              variant="ghost"
+              onClick={() => navigate('/tests')}
+            >
+              {t('common.back')}
+            </Button>
+            <HStack>
+              <Button
+                leftIcon={<FaEdit />}
+                colorScheme="blue"
+                variant="ghost"
+                onClick={() => navigate(`/tests/${id}/edit`)}
+              >
+                {t('common.edit')}
+              </Button>
+            </HStack>
+          </HStack>
+
           {/* Controles do Teste */}
           <Card p={6} bg={cardBgColor} borderRadius="xl" borderWidth={1} borderColor={borderColor}>
             <VStack align="stretch" spacing={4}>
@@ -512,7 +549,7 @@ const TestDetail = () => {
                   {test.objective && (
                     <>
                       <Divider />
-                      <Text fontWeight="bold" color={textColor}>{t('test.details.objective')}</Text>
+                      <Text fontWeight="bold" mb={2}>{t('test.details.objective')}</Text>
                       <Text color={secondaryTextColor}>{test.objective}</Text>
                     </>
                   )}
@@ -541,7 +578,7 @@ const TestDetail = () => {
                         <Grid templateColumns="repeat(3, 1fr)" gap={4}>
                           <Box>
                             <Text fontSize="sm" color={textColor} fontWeight="bold">{t('test.details.ageRange')}</Text>
-                            <Text color={secondaryTextColor}>{test.targetAudience.ageRange}</Text>
+                            <Text color={secondaryTextColor}>{test.targetAudience?.age_range}</Text>
                           </Box>
                           <Box>
                             <Text fontSize="sm" color={textColor} fontWeight="bold">{t('test.details.location')}</Text>
@@ -574,14 +611,13 @@ const TestDetail = () => {
                         <Box>
                           <Text fontSize="sm" color={textColor} mb={2} fontWeight="bold">{t('test.details.painPoints')}</Text>
                           <Wrap spacing={2}>
-                            {test.targetAudience.painPoints?.map((point, index) => (
+                            {test.targetAudience?.pain_points?.map((point, index) => (
                               <Tag 
                                 key={index} 
                                 size="md" 
                                 borderRadius="full" 
                                 variant="subtle" 
                                 colorScheme="red"
-                                fontWeight="normal"
                               >
                                 {point}
                               </Tag>

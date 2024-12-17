@@ -58,12 +58,12 @@ interface Test {
   id: string;
   title: string;
   objective: string;
-  targetAudience: {
-    ageRange: string;
+  target_audience: {
+    age_range: string;
     location: string;
     income: string;
     interests: string[];
-    painPoints: string[];
+    pain_points: string[];
     needs: string[];
   };
   context: {
@@ -94,9 +94,9 @@ interface TinyTroupeConfig {
 const metadataSchema = z.object({
   sentiment: z.number().min(0).max(10),
   confidence: z.number().min(0).max(10),
-  personalRelevance: z.number().min(0).max(10),
-  valueProposition: z.number().min(0).max(10),
-  implementationFeasibility: z.number().min(0).max(10)
+  personal_relevance: z.number().min(0).max(10),
+  value_proposition: z.number().min(0).max(10),
+  implementation_feasibility: z.number().min(0).max(10)
 });
 
 const tagsSchema = z.object({
@@ -106,13 +106,13 @@ const tagsSchema = z.object({
 });
 
 const responseSchema = z.object({
-  firstImpression: z.string(),
-  personalContext: z.record(z.any()),
+  first_impression: z.string(),
+  personal_context: z.record(z.any()),
   benefits: z.array(z.string()),
   concerns: z.array(z.string()),
-  decisionFactors: z.array(z.string()),
+  decision_factors: z.array(z.string()),
   suggestions: z.array(z.string()),
-  targetAudienceAlignment: z.record(z.any()),
+  target_audience_alignment: z.record(z.any()),
   tags: tagsSchema,
   metadata: metadataSchema
 }).strict(); // Não permite campos extras
@@ -363,9 +363,24 @@ export class TinyTroupeService {
 
   private async saveTestMessage(testId: string, personaId: string, content: any): Promise<any> {
     try {
+      // Converter camelCase para snake_case
+      const snakeCaseContent = {
+        test_id: testId,
+        persona_id: personaId,
+        first_impression: content.first_impression,
+        personal_context: content.personal_context,
+        benefits: content.benefits,
+        concerns: content.concerns,
+        decision_factors: content.decision_factors,
+        suggestions: content.suggestions,
+        target_audience_alignment: content.target_audience_alignment,
+        tags: content.tags,
+        metadata: content.metadata
+      };
+
       // Inserir a mensagem no banco
       const result = await pool.query(
-        `INSERT INTO test_messages (
+        `INSERT INTO test_results (
           test_id,
           persona_id,
           first_impression,
@@ -376,21 +391,23 @@ export class TinyTroupeService {
           suggestions,
           target_audience_alignment,
           tags,
-          metadata
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          metadata,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
         RETURNING *`,
         [
-          testId,
-          personaId,
-          content.firstImpression,
-          content.personalContext,
-          content.benefits,
-          content.concerns,
-          content.decisionFactors,
-          content.suggestions,
-          content.targetAudienceAlignment,
-          content.tags,
-          content.metadata
+          snakeCaseContent.test_id,
+          snakeCaseContent.persona_id,
+          snakeCaseContent.first_impression,
+          snakeCaseContent.personal_context,
+          snakeCaseContent.benefits,
+          snakeCaseContent.concerns,
+          snakeCaseContent.decision_factors,
+          snakeCaseContent.suggestions,
+          snakeCaseContent.target_audience_alignment,
+          snakeCaseContent.tags,
+          snakeCaseContent.metadata
         ]
       );
 
@@ -421,23 +438,21 @@ export class TinyTroupeService {
       // Salvar a mensagem no banco
       const savedMessage = await this.saveTestMessage(test.id, test.personaIds[0], result);
 
-      // Formatar a mensagem para o WebSocket
+      // Formatar a mensagem para o WebSocket mantendo snake_case
       const message = {
         id: savedMessage.id,
-        testId: test.id,
-        personaId: test.personaIds[0],
-        content: {
-          firstImpression: savedMessage.first_impression,
-          personalContext: savedMessage.personal_context,
-          benefits: savedMessage.benefits,
-          concerns: savedMessage.concerns,
-          decisionFactors: savedMessage.decision_factors,
-          suggestions: savedMessage.suggestions,
-          targetAudienceAlignment: savedMessage.target_audience_alignment,
-          tags: savedMessage.tags,
-          metadata: savedMessage.metadata
-        },
-        timestamp: savedMessage.created_at
+        test_id: savedMessage.test_id,
+        persona_id: savedMessage.persona_id,
+        first_impression: savedMessage.first_impression,
+        personal_context: savedMessage.personal_context,
+        benefits: savedMessage.benefits,
+        concerns: savedMessage.concerns,
+        decision_factors: savedMessage.decision_factors,
+        suggestions: savedMessage.suggestions,
+        target_audience_alignment: savedMessage.target_audience_alignment,
+        tags: savedMessage.tags,
+        metadata: savedMessage.metadata,
+        created_at: savedMessage.created_at
       };
 
       // Emitir evento com a resposta

@@ -58,6 +58,13 @@ export const FormInput: React.FC<FormInputProps> = ({
   const labelColor = useColorModeValue('gray.600', 'gray.400');
   const [tagInput, setTagInput] = useState('');
 
+  // Função para obter o valor do campo aninhado
+  const getNestedValue = (obj: any, path: string) => {
+    return path.split('.').reduce((prev, curr) => {
+      return prev ? prev[curr] : '';
+    }, obj);
+  };
+
   const handleTagKeyDown = (
     e: KeyboardEvent<HTMLInputElement>,
     field: any,
@@ -79,9 +86,11 @@ export const FormInput: React.FC<FormInputProps> = ({
   return (
     <Field name={name}>
       {({ field, form }: FieldProps) => {
-        const error = form.errors[name];
-        const touched = form.touched[name];
-        console.log(`Field ${name}:`, { value: field.value, error, touched });
+        const error = getNestedValue(form.errors, name);
+        const touched = getNestedValue(form.touched, name);
+        const value = getNestedValue(form.values, name);
+        
+        console.log(`Field ${name}:`, { value, error, touched });
         
         return (
           <FormControl 
@@ -143,49 +152,25 @@ export const FormInput: React.FC<FormInputProps> = ({
             ) : as === 'textarea' ? (
               <Textarea
                 {...field}
-                {...props}
                 id={name}
                 placeholder={placeholder}
                 rows={rows}
                 bg={inputBg}
-                color={textColor}
                 borderColor={borderColor}
                 _hover={{ borderColor: hoverBorderColor }}
-                _focus={{ borderColor: hoverBorderColor }}
-              />
-            ) : as === 'input' ? (
-              <Input
-                {...field}
+                color={textColor}
                 {...props}
-                id={name}
-                type={type}
-                bg={inputBg}
-                borderColor={borderColor}
-                _hover={{ borderColor: hoverBorderColor }}
-                _focus={{ borderColor: hoverBorderColor }}
-                color={textColor}
-                placeholder={placeholder}
-                onChange={(e) => {
-                  field.onChange(e);
-                  if (props.onChange) {
-                    props.onChange(e);
-                  }
-                }}
-                onKeyPress={onKeyPress}
-                isInvalid={!!error && touched}
-                autoComplete="off"
               />
             ) : as === 'select' ? (
               <Select
                 {...field}
-                {...props}
                 id={name}
                 placeholder={placeholder}
                 bg={inputBg}
-                color={textColor}
                 borderColor={borderColor}
                 _hover={{ borderColor: hoverBorderColor }}
-                _focus={{ borderColor: hoverBorderColor }}
+                color={textColor}
+                {...props}
               >
                 {options.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -194,39 +179,51 @@ export const FormInput: React.FC<FormInputProps> = ({
                 ))}
               </Select>
             ) : (
-              <Box position="relative">
-                <Input
-                  {...field}
-                  {...props}
-                  id={name}
-                  type={type}
-                  placeholder={placeholder}
-                  bg={inputBg}
-                  color={textColor}
-                  borderColor={borderColor}
-                  _hover={{ borderColor: hoverBorderColor }}
-                  _focus={{ borderColor: hoverBorderColor }}
-                  onKeyPress={onKeyPress}
-                  pr={InputRightElement ? "3rem" : undefined}
-                />
-                {InputRightElement && (
-                  <Box position="absolute" right="0" top="50%" transform="translateY(-50%)" pr={2}>
-                    {InputRightElement}
-                  </Box>
-                )}
-              </Box>
-            )}
-
-            {error && touched && (
-              <FormErrorMessage color={errorColor}>
-                {error}
-              </FormErrorMessage>
+              <Input
+                {...field}
+                id={name}
+                type={type}
+                placeholder={placeholder}
+                bg={inputBg}
+                borderColor={borderColor}
+                _hover={{ borderColor: hoverBorderColor }}
+                color={textColor}
+                value={value || ''}
+                onChange={(e) => {
+                  const fieldPath = name.split('.');
+                  if (fieldPath.length > 1) {
+                    const newValue = { ...form.values };
+                    let current = newValue;
+                    for (let i = 0; i < fieldPath.length - 1; i++) {
+                      if (!current[fieldPath[i]]) {
+                        current[fieldPath[i]] = {};
+                      }
+                      current = current[fieldPath[i]];
+                    }
+                    current[fieldPath[fieldPath.length - 1]] = e.target.value;
+                    form.setValues(newValue);
+                  } else {
+                    field.onChange(e);
+                  }
+                }}
+                onBlur={(e) => {
+                  field.onBlur(e);
+                  if (props.onBlur) {
+                    props.onBlur(e);
+                  }
+                }}
+                {...props}
+              />
             )}
 
             {helperText && !error && (
               <FormHelperText color={labelColor}>
                 {helperText}
               </FormHelperText>
+            )}
+            
+            {error && touched && (
+              <FormErrorMessage>{error}</FormErrorMessage>
             )}
           </FormControl>
         );

@@ -23,18 +23,18 @@ const defaultValues: CreateTestData = {
   description: '',
   objective: '',
   settings: {
-    maxIterations: 5,
-    responseFormat: 'detailed',
-    interactionStyle: 'natural',
+    max_iterations: 5,
+    response_format: 'detailed',
+    interaction_style: 'natural',
   },
   topics: [],
-  personaIds: [],
-  targetAudience: {
-    ageRange: '',
+  persona_ids: [],
+  target_audience: {
+    age_range: '',
     location: '',
     income: '',
     interests: [],
-    painPoints: [],
+    pain_points: [],
     needs: []
   },
   language: 'pt'
@@ -60,8 +60,8 @@ const TestCreate = () => {
           objective: data.objective,
           settings: data.settings,
           topics: data.topics,
-          personaIds: data.personaIds,
-          target_audience: data.targetAudience,
+          persona_ids: data.persona_ids,
+          target_audience: data.target_audience,
           language: data.language
         };
         

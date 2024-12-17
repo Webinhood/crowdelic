@@ -187,12 +187,12 @@ export const translations = {
           title: 'Test Details',
           objective: 'Objective',
           topics: 'Topics',
-          targetAudience: 'Target Audience',
-          ageRange: 'Age Range',
+          target_audience: 'Target Audience',
+          age_range: 'Age Range',
           location: 'Location',
           income: 'Income',
           interests: 'Interests',
-          painPoints: 'Pain Points',
+          pain_points: 'Pain Points',
           needs: 'Needs'
         },
         conversation: {
@@ -570,6 +570,23 @@ export const translations = {
             description: 'Tailor tests to your specific needs'
           }
         }
+      },
+      common: {
+        back: 'Back',
+        edit: 'Edit',
+        delete: 'Delete',
+        save: 'Save',
+        cancel: 'Cancel',
+        close: 'Close',
+        loading: 'Loading...',
+        error: 'Error',
+        success: 'Success',
+        warning: 'Warning',
+        info: 'Info',
+        yes: 'Yes',
+        no: 'No',
+        confirm: 'Confirm',
+        actions: 'Actions'
       }
     }
   },
@@ -599,7 +616,7 @@ export const translations = {
             settings: 'Configurações',
             personas: 'Personas',
             topics: 'Tópicos',
-            targetAudience: 'Público-Alvo'
+            targetAudience: 'Público-alvo'
           },
           title: {
             label: 'Título',
@@ -633,22 +650,46 @@ export const translations = {
             years: 'anos'
           },
           targetAudience: {
-            title: 'Público-Alvo',
-            ageRange: 'Faixa etária',
-            location: 'Localização',
-            income: 'Renda',
-            interests: 'Interesses',
-            painPoints: 'Pontos de dor',
-            needs: 'Necessidades'
+            title: 'Público-alvo',
+            ageRange: {
+              label: 'Faixa etária',
+              description: 'Idade do público-alvo',
+              placeholder: 'Ex: 25-35 anos'
+            },
+            location: {
+              label: 'Localização',
+              description: 'Onde seu público-alvo está localizado?',
+              placeholder: 'Ex: São Paulo, Brasil'
+            },
+            income: {
+              label: 'Renda',
+              description: 'Qual é a faixa de renda do seu público-alvo?',
+              placeholder: 'Ex: R$ 5.000 - R$ 10.000'
+            },
+            interests: {
+              label: 'Interesses',
+              description: 'Quais são os principais interesses do seu público-alvo?',
+              placeholder: 'Adicione um interesse'
+            },
+            painPoints: {
+              label: 'Pontos de dor',
+              description: 'Principais problemas e desafios',
+              placeholder: 'Adicione um ponto de dor (Ex: falta de tempo, complexidade)'
+            },
+            needs: {
+              label: 'Necessidades',
+              description: 'Quais são as principais necessidades do seu público-alvo?',
+              placeholder: 'Adicione uma necessidade'
+            }
           },
           settings: {
             maxIterations: {
               label: 'Número máximo de iterações',
-              description: 'Número máximo de rodadas de interação',
+              description: 'Quantas rodadas de interação serão permitidas',
               placeholder: 'Ex: 5'
             },
             responseFormat: {
-              label: 'Formato de resposta',
+              label: 'Formato da resposta',
               description: 'Quão detalhadas devem ser as respostas',
               placeholder: 'Ex: detalhado'
             },
@@ -702,7 +743,7 @@ export const translations = {
           }
         },
         details: {
-          title: 'Detalhes do teste',
+          title: 'Detalhes do Teste',
           objective: 'Objetivo',
           topics: 'Tópicos',
           targetAudience: 'Público-alvo',
@@ -746,6 +787,7 @@ export const translations = {
         edit: {
           title: 'Editar teste',
           description: 'Atualize a configuração do seu teste',
+          submit: 'Salvar alterações',
           messages: {
             success: 'Teste atualizado com sucesso',
             error: 'Erro ao atualizar teste'
@@ -1089,6 +1131,23 @@ export const translations = {
             description: 'Adapte os testes às suas necessidades específicas'
           }
         }
+      },
+      common: {
+        back: 'Voltar',
+        edit: 'Editar',
+        delete: 'Excluir',
+        save: 'Salvar',
+        cancel: 'Cancelar',
+        close: 'Fechar',
+        loading: 'Carregando...',
+        error: 'Erro',
+        success: 'Sucesso',
+        warning: 'Atenção',
+        info: 'Informação',
+        yes: 'Sim',
+        no: 'Não',
+        confirm: 'Confirmar',
+        actions: 'Ações'
       }
     }
   }

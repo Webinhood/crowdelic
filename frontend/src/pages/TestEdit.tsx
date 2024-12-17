@@ -28,31 +28,66 @@ const TestEdit = () => {
 
   const { data: test, isLoading } = useQuery({
     queryKey: ['test', id],
-    queryFn: () => getTest(id!),
+    queryFn: async () => {
+      console.log('=== DEBUG TEST EDIT QUERY ===');
+      const response = await getTest(id!);
+      console.log('Dados brutos do backend:', response);
+      console.log('target_audience:', response.target_audience);
+      console.log('persona_ids:', response.persona_ids);
+      
+      // Garantir que os dados estejam no formato correto para o formulário
+      const formattedData = {
+        ...response,
+        target_audience: {
+          age_range: response.targetAudience?.age_range || '',
+          location: response.targetAudience?.location || '',
+          income: response.targetAudience?.income || '',
+          interests: Array.isArray(response.targetAudience?.interests) ? response.targetAudience.interests : [],
+          pain_points: Array.isArray(response.targetAudience?.pain_points) ? response.targetAudience.pain_points : [],
+          needs: Array.isArray(response.targetAudience?.needs) ? response.targetAudience.needs : []
+        },
+        persona_ids: Array.isArray(response.personaIds) ? response.personaIds : [],
+        topics: Array.isArray(response.topics) ? response.topics : [],
+      };
+      
+      console.log('Dados formatados para o formulário:', formattedData);
+      console.log('target_audience formatado:', formattedData.target_audience);
+      console.log('persona_ids formatado:', formattedData.persona_ids);
+      return formattedData;
+    },
     enabled: !!id,
   });
 
   const mutation = useMutation({
     mutationFn: async (data: CreateTestData) => {
-      const updatedData = {
-        ...data,
-        targetAudience: {
-          ageRange: data.targetAudience?.ageRange || '',
-          location: data.targetAudience?.location || '',
-          income: data.targetAudience?.income || '',
-          interests: data.targetAudience?.interests?.filter(i => i.trim()) || [],
-          painPoints: data.targetAudience?.painPoints?.filter(p => p.trim()) || [],
-          needs: data.targetAudience?.needs?.filter(n => n.trim()) || []
-        },
-        language: data.language || 'pt-BR',
-        topics: data.topics?.filter(t => t.trim()) || [],
-        personaIds: data.personaIds?.filter(Boolean) || []
-      };
-      return await updateTest(id!, updatedData);
+      console.log('=== DEBUG TEST EDIT MUTATION ===');
+      console.log('Dados recebidos para atualização:', JSON.stringify(data, null, 2));
+      
+      // Enviar os dados como estão, sem modificar
+      const response = await updateTest(id!, data);
+      console.log('Resposta da atualização:', JSON.stringify(response, null, 2));
+      return response;
     },
     onSuccess: () => {
+      console.log('Atualização bem sucedida, invalidando queries...');
       queryClient.invalidateQueries(['test', id]);
       queryClient.invalidateQueries(['tests']);
+      toast({
+        title: t('test.edit.messages.success'),
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+    onError: (error: any) => {
+      console.error('Erro na atualização:', error);
+      toast({
+        title: t('test.edit.messages.error'),
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
     }
   });
 
@@ -96,23 +131,12 @@ const TestEdit = () => {
           onSubmit={async (data) => {
             try {
               await mutation.mutateAsync(data);
-              toast({
-                title: t('test.edit.messages.success'),
-                status: 'success',
-                duration: 5000,
-                isClosable: true,
-              });
               navigate('/tests');
             } catch (error) {
-              toast({
-                title: t('test.edit.messages.error'),
-                status: 'error',
-                duration: 5000,
-                isClosable: true,
-              });
+              // error already handled by onError callback
             }
           }}
-          submitLabel={t('test.form.submit')}
+          submitLabel={t('test.edit.submit')}
           isSubmitting={mutation.isLoading}
         />
       </VStack>

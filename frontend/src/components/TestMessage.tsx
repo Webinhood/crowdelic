@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -15,17 +15,41 @@ import {
   IconButton,
   Tooltip,
   SimpleGrid,
+  Icon,
+  Collapse,
+  Spacer,
 } from '@chakra-ui/react';
-import { 
-  FiStar, 
-  FiCheckCircle, 
-  FiAlertCircle, 
-  FiHelpCircle, 
+import {
+  FiStar,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiHelpCircle,
   FiZap,
   FiHash,
-  FiTrash2
+  FiTrash2,
 } from 'react-icons/fi';
+import { 
+  FaUser, 
+  FaBrain, 
+  FaComments, 
+  FaHandshake,
+  FaLaptop,           // digital comfort
+  FaClock,            // routine
+  FaMapMarkerAlt,     // location
+  FaUsers,            // family
+  FaWallet,           // financial
+  FaBirthdayCake,     // age
+  FaMapPin,           // location match
+  FaMoneyBillWave,    // income
+  FaStar,             // interests
+  FaBandAid,          // pain points
+  FaChevronDown, 
+  FaChevronRight,
+  FaCopy,
+  FaTrash,
+} from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@chakra-ui/react';
 
 interface TestMessageProps {
   message: {
@@ -43,30 +67,31 @@ interface TestMessageProps {
       opportunity: string[];
     };
     personal_context: {
-      digitalComfort: string;
-      routineAlignment: string;
-      locationRelevance: string;
-      familyConsideration: string;
-      financialPerspective: string;
+      digital_comfort: string;
+      routine_alignment: string;
+      location_relevance: string;
+      family_consideration: string;
+      financial_perspective: string;
     };
     target_audience_alignment: {
-      ageMatch: string;
-      locationMatch: string;
-      incomeMatch: string;
-      interestOverlap: string;
-      painPointRelevance: string;
+      age_match: string;
+      location_match: string;
+      income_match: string;
+      interest_overlap: string;
+      pain_point_relevance: string;
     };
     metadata: {
       sentiment: number;
       confidence: number;
-      valueProposition: number;
-      personalRelevance: number;
-      implementationFeasibility: number;
+      value_proposition: number;
+      personal_relevance: number;
+      implementation_feasibility: number;
     };
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
   };
+  messageNumber: number;
   persona: {
     name: string;
     avatar?: string;
@@ -74,13 +99,57 @@ interface TestMessageProps {
   };
   timestamp?: Date;
   onDelete?: (messageId: string) => void;
+  isNew?: boolean;
+  onMessageViewed?: () => void;
 }
 
-const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, onDelete }) => {
-  const bgColor = useColorModeValue('white', 'gray.900');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const sectionBgColor = useColorModeValue('gray.50', 'gray.700');
+const TestMessage: React.FC<TestMessageProps> = ({
+  message,
+  messageNumber,
+  persona,
+  timestamp,
+  onDelete,
+  isNew = false,
+  onMessageViewed,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showNewBadge, setShowNewBadge] = useState(isNew);
+
+  useEffect(() => {
+    setShowNewBadge(isNew);
+  }, [isNew]);
+
+  const toggleExpand = () => {
+    const newExpandedState = !isExpanded;
+    setIsExpanded(newExpandedState);
+    if (newExpandedState && showNewBadge) {
+      setShowNewBadge(false);
+      onMessageViewed?.();
+    }
+  };
+
   const { t } = useTranslation();
+  const toast = useToast();
+  const textColor = useColorModeValue('gray.800', 'white');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const secondaryTextColor = useColorModeValue('gray.600', 'gray.400');
+  const highlightBgColor = useColorModeValue('blue.50', 'blue.900');
+
+  useEffect(() => {
+    if (isExpanded && showNewBadge) {
+      setShowNewBadge(false);
+    }
+  }, [isExpanded]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.first_impression);
+    toast({
+      title: t('common.copied'),
+      status: 'success',
+      duration: 2000,
+    });
+  };
 
   // Garantir que temos um objeto de conteúdo válido
   const content = React.useMemo(() => {
@@ -130,16 +199,22 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
   // Remover console.logs de debug que não são mais necessários
   const calculateOverallScore = () => {
     if (!metadata) return 0;
-    
+
     const {
       sentiment = 0,
       confidence = 0,
-      valueProposition = 0,
-      personalRelevance = 0,
-      implementationFeasibility = 0
+      value_proposition = 0,
+      personal_relevance = 0,
+      implementation_feasibility = 0,
     } = metadata;
 
-    return (sentiment + confidence + valueProposition + personalRelevance + implementationFeasibility) / 5;
+    return (
+      sentiment +
+      confidence +
+      value_proposition +
+      personal_relevance +
+      implementation_feasibility
+    ) / 5;
   };
 
   const renderStars = (rating: number = 5) => {
@@ -169,19 +244,19 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
   };
 
   const renderMetric = (label: string, value: number) => (
-    <Box 
-      p={2} 
-      borderRadius="md" 
-      borderWidth="1px" 
+    <Box
+      p={2}
+      borderRadius="md"
+      borderWidth="1px"
       borderColor={borderColor}
       bg={bgColor}
       width="100%"
       minW={0}
     >
       <VStack spacing={0} align="center">
-        <Text 
-          fontSize="2xs" 
-          color="gray.500" 
+        <Text
+          fontSize="2xs"
+          color="gray.500"
           fontWeight="medium"
           textAlign="center"
           noOfLines={1}
@@ -207,202 +282,306 @@ const TestMessage: React.FC<TestMessageProps> = ({ message, persona, timestamp, 
     }
   };
 
+  const personalContextLabels = {
+    digital_comfort: 'Conforto Digital',
+    routine_alignment: 'Alinhamento de Rotina',
+    location_relevance: 'Relevância de Localização',
+    family_consideration: 'Consideração Familiar',
+    financial_perspective: 'Perspectiva Financeira',
+  };
+
+  const targetAudienceLabels = {
+    age_match: 'Alinhamento de Idade',
+    location_match: 'Alinhamento de Localização',
+    income_match: 'Alinhamento de Renda',
+    interest_overlap: 'Sobreposição de Interesses',
+    pain_point_relevance: 'Relevância de Pontos de Dor',
+  };
+
+  const getPersonalContextIcon = (key: string) => {
+    switch (key) {
+      case 'digital_comfort':
+        return FaLaptop;
+      case 'routine_alignment':
+        return FaClock;
+      case 'location_relevance':
+        return FaMapMarkerAlt;
+      case 'family_consideration':
+        return FaUsers;
+      case 'financial_perspective':
+        return FaWallet;
+      default:
+        return FaUsers;
+    }
+  };
+
+  const getTargetAudienceIcon = (key: string) => {
+    switch (key) {
+      case 'age_match':
+        return FaBirthdayCake;
+      case 'location_match':
+        return FaMapPin;
+      case 'income_match':
+        return FaMoneyBillWave;
+      case 'interest_overlap':
+        return FaStar;
+      case 'pain_point_relevance':
+        return FaBandAid;
+      default:
+        return FaUsers;
+    }
+  };
+
   return (
     <Box
       borderWidth="1px"
       borderRadius="lg"
-      overflow="hidden"
-      bg={bgColor}
       borderColor={borderColor}
-      p={6}
-      mb={4}
-      shadow="md"
+      bg={bgColor}
+      p={4}
+      mb={0}
+      position="relative"
     >
-      {/* Header */}
-      <HStack spacing={4} mb={6}>
-        <Box flex="1">
-          {timestamp && (
-            <Text fontSize="sm" color="gray.500">
-              {new Intl.DateTimeFormat('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              }).format(timestamp)}
-            </Text>
-          )}
-        </Box>
-        <HStack spacing={1}>
-          {renderStars(calculateOverallScore())}
-          {message.id && onDelete && (
-            <Tooltip label={t('test.message.deleteTooltip')} placement="top">
+      {/* Cabeçalho da mensagem sempre visível */}
+      <HStack spacing={4} mb={isExpanded ? 4 : 0} onClick={toggleExpand} cursor="pointer">
+        <Icon
+          as={isExpanded ? FaChevronDown : FaChevronRight}
+          color={secondaryTextColor}
+        />
+        <Text fontWeight="bold" color={textColor}>
+          Mensagem {messageNumber}
+        </Text>
+        {showNewBadge && (
+          <Badge colorScheme="green" variant="solid">
+            Nova
+          </Badge>
+        )}
+        <Text fontSize="sm" color={secondaryTextColor}>
+          {timestamp ? new Date(timestamp).toLocaleString('pt-BR') : ''}
+        </Text>
+        <Spacer />
+        <HStack>
+          <Tooltip label="Copiar mensagem" placement="top">
+            <IconButton
+              aria-label="Copy message"
+              icon={<FaCopy />}
+              size="sm"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy();
+              }}
+            />
+          </Tooltip>
+          {onDelete && (
+            <Tooltip label="Excluir mensagem" placement="top">
               <IconButton
-                aria-label={t('test.message.deleteButton')}
-                icon={<FiTrash2 />}
+                aria-label="Delete message"
+                icon={<FaTrash />}
                 size="sm"
-                variant="outline"
-                colorScheme="red"
-                ml={2}
-                borderWidth="1px"
-                onClick={() => onDelete(message.id!)}
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(message.id);
+                }}
               />
             </Tooltip>
           )}
         </HStack>
       </HStack>
 
-      {/* First Impression */}
-      {message.first_impression && message.first_impression.length > 0 && (
-        <Box mb={4} p={4} bg={sectionBgColor} borderRadius="md">
-          <Text fontWeight="bold" mb={2}>{t('Primeira Impressão')}</Text>
-          <Text>{message.first_impression}</Text>
+      {/* Conteúdo colapsável */}
+      <Collapse in={isExpanded} animateOpacity>
+        <Box mb={6}>
+          <Box 
+            p={4} 
+            bg={highlightBgColor} 
+            borderRadius="md" 
+            mb={4}
+          >
+            <Text color={textColor} whiteSpace="pre-wrap">
+              {message.first_impression}
+            </Text>
+          </Box>
         </Box>
-      )}
 
-      {/* Decision Factors */}
-      {message.decision_factors && message.decision_factors.length > 0 && (
-        <Box mb={4} p={4} bg={sectionBgColor} borderRadius="md">
-          <Text fontWeight="bold" mb={2}>{t('Fatores de Decisão')}</Text>
-          <List spacing={2}>
-            {message.decision_factors.map((factor, index) => (
-              <ListItem key={index} display="flex" alignItems="center">
-                <ListIcon as={FiCheckCircle} color="green.500" />
-                <Text>{factor}</Text>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      )}
-
-      {/* Personal Context */}
-      {message.personal_context && Object.keys(message.personal_context).length > 0 && (
-        <Box mb={4} p={4} bg={sectionBgColor} borderRadius="md">
-          <Text fontWeight="bold" mb={2}>{t('Contexto Pessoal')}</Text>
-          <SimpleGrid columns={1} spacing={2}>
-            {Object.entries(message.personal_context).map(([key, value]) => (
-              <Box key={key}>
-                <Text fontWeight="medium">{t(key)}</Text>
+        {/* Contexto Pessoal */}
+        <Box mb={6}>
+          <Text fontSize="md" fontWeight="medium" mb={3}>{t('Contexto Pessoal')}</Text>
+          <VStack align="stretch" spacing={3}>
+            {Object.entries(message.personal_context || {}).map(([key, value]) => (
+              <Box 
+                key={key} 
+                p={3} 
+                borderWidth="1px" 
+                borderColor={borderColor} 
+                borderRadius="md"
+              >
+                <HStack spacing={2} mb={1}>
+                  <Icon as={getPersonalContextIcon(key)} color="blue.500" />
+                  <Text fontSize="sm" fontWeight="medium" color={textColor}>{personalContextLabels[key] || t(key)}</Text>
+                </HStack>
                 <Text>{value}</Text>
               </Box>
             ))}
-          </SimpleGrid>
-        </Box>
-      )}
-
-      {/* Target Audience Alignment */}
-      {message.target_audience_alignment && Object.keys(message.target_audience_alignment).length > 0 && (
-        <Box mb={4} p={4} bg={sectionBgColor} borderRadius="md">
-          <Text fontWeight="bold" mb={2}>{t('Alinhamento com Público-Alvo')}</Text>
-          <SimpleGrid columns={1} spacing={2}>
-            {Object.entries(message.target_audience_alignment).map(([key, value]) => (
-              <Box key={key}>
-                <Text fontWeight="medium">{t(key)}</Text>
-                <Text>{value}</Text>
-              </Box>
-            ))}
-          </SimpleGrid>
-        </Box>
-      )}
-
-      {/* Benefits */}
-      {benefits?.length > 0 && (
-        <VStack spacing={4} align="stretch" mb={6}>
-          <Text fontSize="lg" fontWeight="medium">{t('test.message.benefits')}</Text>
-          <List spacing={3}>
-            {benefits.map((benefit, index) => (
-              <ListItem key={index}>
-                <HStack align="start">
-                  <ListIcon as={FiCheckCircle} color="green.500" mt={1} />
-                  <Text>{benefit}</Text>
-                </HStack>
-              </ListItem>
-            ))}
-          </List>
-        </VStack>
-      )}
-
-      {/* Concerns */}
-      {concerns?.length > 0 && (
-        <VStack spacing={4} align="stretch" mb={6}>
-          <Text fontSize="lg" fontWeight="medium">{t('test.message.concerns')}</Text>
-          <List spacing={3}>
-            {concerns.map((concern, index) => (
-              <ListItem key={index}>
-                <HStack align="start">
-                  <ListIcon as={FiAlertCircle} color="red.500" mt={1} />
-                  <Text>{concern}</Text>
-                </HStack>
-              </ListItem>
-            ))}
-          </List>
-        </VStack>
-      )}
-
-      {/* Suggestions */}
-      {suggestions?.length > 0 && (
-        <VStack spacing={4} align="stretch" mb={6}>
-          <Text fontSize="lg" fontWeight="medium">{t('test.message.suggestions')}</Text>
-          <List spacing={3}>
-            {suggestions.map((suggestion, index) => (
-              <ListItem key={index}>
-                <HStack align="start">
-                  <ListIcon as={FiZap} color="yellow.500" mt={1} />
-                  <Text>{suggestion}</Text>
-                </HStack>
-              </ListItem>
-            ))}
-          </List>
-        </VStack>
-      )}
-
-      {/* Tags */}
-      {tags && Object.keys(tags).length > 0 && (
-        <Box>
-          <Text fontSize="lg" fontWeight="medium" mb={4}>{t('test.message.tags.title')}</Text>
-          <VStack spacing={4} align="stretch">
-            {tags.positive?.length > 0 && (
-              <Box>
-                <Text fontWeight="medium" mb={2} color="green.500">{t('test.message.tags.positive')}</Text>
-                <Wrap spacing={2}>
-                  {renderTags(tags.positive, 'green')}
-                </Wrap>
-              </Box>
-            )}
-            {tags.negative?.length > 0 && (
-              <Box>
-                <Text fontWeight="medium" mb={2} color="red.500">{t('test.message.tags.negative')}</Text>
-                <Wrap spacing={2}>
-                  {renderTags(tags.negative, 'red')}
-                </Wrap>
-              </Box>
-            )}
-            {tags.opportunity?.length > 0 && (
-              <Box>
-                <Text fontWeight="medium" mb={2} color="blue.500">{t('test.message.tags.opportunity')}</Text>
-                <Wrap spacing={2}>
-                  {renderTags(tags.opportunity, 'blue')}
-                </Wrap>
-              </Box>
-            )}
           </VStack>
         </Box>
-      )}
 
-      {/* Metrics */}
-      {metadata && Object.keys(metadata).length > 0 && (
-        <Box mt={6}>
-          <Text fontSize="lg" fontWeight="medium" mb={4}>{t('test.message.metrics.title')}</Text>
-          <SimpleGrid columns={{ base: 2, md: 5 }} spacing={4}>
-            {metadata.sentiment && renderMetric(t('test.message.metrics.sentiment'), metadata.sentiment)}
-            {metadata.confidence && renderMetric(t('test.message.metrics.confidence'), metadata.confidence)}
-            {metadata.personalRelevance && renderMetric(t('test.message.metrics.relevance'), metadata.personalRelevance)}
-            {metadata.valueProposition && renderMetric(t('test.message.metrics.value'), metadata.valueProposition)}
-            {metadata.implementationFeasibility && renderMetric(t('test.message.metrics.feasibility'), metadata.implementationFeasibility)}
-          </SimpleGrid>
+        {/* Alinhamento com Público-Alvo */}
+        <Box mb={6}>
+          <Text fontSize="md" fontWeight="medium" mb={3}>{t('Alinhamento com Público-Alvo')}</Text>
+          <VStack align="stretch" spacing={3}>
+            {Object.entries(message.target_audience_alignment || {}).map(([key, value]) => (
+              <Box 
+                key={key} 
+                p={3} 
+                borderWidth="1px" 
+                borderColor={borderColor} 
+                borderRadius="md"
+              >
+                <HStack spacing={2} mb={1}>
+                  <Icon as={getTargetAudienceIcon(key)} color="green.500" />
+                  <Text fontSize="sm" fontWeight="medium" color={textColor}>{targetAudienceLabels[key] || t(key)}</Text>
+                </HStack>
+                <Text>{value}</Text>
+              </Box>
+            ))}
+          </VStack>
         </Box>
-      )}
+
+        {/* Benefícios */}
+        {message.benefits?.length > 0 && (
+          <Box mb={6}>
+            <Text fontSize="md" fontWeight="medium" mb={3}>
+              {t('test.message.benefits')}
+            </Text>
+            <List spacing={2}>
+              {message.benefits.map((benefit, index) => (
+                <ListItem key={index}>
+                  <HStack align="start">
+                    <ListIcon as={FiCheckCircle} color="green.500" mt={1} />
+                    <Text>{benefit}</Text>
+                  </HStack>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
+
+        {/* Preocupações */}
+        {message.concerns?.length > 0 && (
+          <Box mb={6}>
+            <Text fontSize="md" fontWeight="medium" mb={3}>
+              {t('test.message.concerns')}
+            </Text>
+            <List spacing={2}>
+              {message.concerns.map((concern, index) => (
+                <ListItem key={index}>
+                  <HStack align="start">
+                    <ListIcon as={FiAlertCircle} color="red.500" mt={1} />
+                    <Text>{concern}</Text>
+                  </HStack>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
+
+        {/* Sugestões */}
+        {message.suggestions?.length > 0 && (
+          <Box mb={6}>
+            <Text fontSize="md" fontWeight="medium" mb={3}>
+              {t('test.message.suggestions')}
+            </Text>
+            <List spacing={2}>
+              {message.suggestions.map((suggestion, index) => (
+                <ListItem key={index}>
+                  <HStack align="start">
+                    <ListIcon as={FiZap} color="yellow.500" mt={1} />
+                    <Text>{suggestion}</Text>
+                  </HStack>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
+
+        {/* Fatores de Decisão */}
+        {message.decision_factors?.length > 0 && (
+          <Box mb={6}>
+            <Text fontSize="md" fontWeight="medium" mb={3}>
+              {t('Fatores de Decisão')}
+            </Text>
+            <List spacing={2}>
+              {message.decision_factors.map((factor, index) => (
+                <ListItem key={index}>
+                  <HStack align="start">
+                    <ListIcon as={FiCheckCircle} color="purple.500" mt={1} />
+                    <Text>{factor}</Text>
+                  </HStack>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
+
+        {/* Tags */}
+        {message.tags && Object.keys(message.tags).length > 0 && (
+          <Box mb={6}>
+            <Text fontSize="md" fontWeight="medium" mb={3}>
+              {t('test.message.tags.title')}
+            </Text>
+            <VStack spacing={3} align="stretch">
+              {message.tags.positive?.length > 0 && (
+                <Box>
+                  <Text fontSize="sm" color="green.500" mb={1}>
+                    {t('test.message.tags.positive')}
+                  </Text>
+                  <Wrap spacing={2}>
+                    {renderTags(message.tags.positive, 'green')}
+                  </Wrap>
+                </Box>
+              )}
+              {message.tags.negative?.length > 0 && (
+                <Box>
+                  <Text fontSize="sm" color="red.500" mb={1}>
+                    {t('test.message.tags.negative')}
+                  </Text>
+                  <Wrap spacing={2}>
+                    {renderTags(message.tags.negative, 'red')}
+                  </Wrap>
+                </Box>
+              )}
+              {message.tags.opportunity?.length > 0 && (
+                <Box>
+                  <Text fontSize="sm" color="blue.500" mb={1}>
+                    {t('test.message.tags.opportunity')}
+                  </Text>
+                  <Wrap spacing={2}>
+                    {renderTags(message.tags.opportunity, 'blue')}
+                  </Wrap>
+                </Box>
+              )}
+            </VStack>
+          </Box>
+        )}
+
+        {/* Métricas */}
+        {metadata && Object.keys(metadata).length > 0 && (
+          <Box>
+            <Text fontSize="md" fontWeight="medium" mb={3}>
+              {t('test.message.metrics.title')}
+            </Text>
+            <SimpleGrid columns={{ base: 2, md: 5 }} spacing={4}>
+              {metadata.sentiment && renderMetric(t('test.message.metrics.sentiment'), metadata.sentiment)}
+              {metadata.confidence && renderMetric(t('test.message.metrics.confidence'), metadata.confidence)}
+              {metadata.personal_relevance && renderMetric(t('test.message.metrics.relevance'), metadata.personal_relevance)}
+              {metadata.value_proposition && renderMetric(t('test.message.metrics.value'), metadata.value_proposition)}
+              {metadata.implementation_feasibility && renderMetric(t('test.message.metrics.feasibility'), metadata.implementation_feasibility)}
+            </SimpleGrid>
+          </Box>
+        )}
+      </Collapse>
     </Box>
   );
 };

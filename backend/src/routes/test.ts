@@ -91,33 +91,35 @@ const formatTestData = (test: any) => {
     interactionStyle: 'natural'
   });
   
-  const targetAudience = parseJsonField(test.target_audience, {
-    ageRange: '',
-    location: '',
-    income: '',
-    interests: [],
-    painPoints: [],
-    needs: []
-  });
+  // Converter snake_case para camelCase no targetAudience
+  const rawTargetAudience = parseJsonField(test.target_audience, {});
+  const targetAudience = {
+    ageRange: rawTargetAudience.age_range || rawTargetAudience.ageRange || '',
+    location: rawTargetAudience.location || '',
+    income: rawTargetAudience.income || '',
+    interests: rawTargetAudience.interests || [],
+    painPoints: rawTargetAudience.pain_points || rawTargetAudience.painPoints || [],
+    needs: rawTargetAudience.needs || []
+  };
 
-  // Construir o objeto formatado
+  // Formatar dados do teste
   const formattedTest = {
     id: test.id,
-    title: test.title || '',
-    description: test.description || '',
-    objective: test.objective || '',
-    language: test.language || 'pt',
+    title: test.title,
+    description: test.description,
+    objective: test.objective,
     settings,
     topics,
     personaIds,
-    targetAudience,
     results,
     status: test.status || 'pending',
     createdAt: test.created_at,
-    updatedAt: test.updated_at
+    updatedAt: test.updated_at,
+    language: test.language || 'pt',
+    targetAudience
   };
 
-  console.log('Dados formatados:', formattedTest);
+  console.log('Teste formatado:', formattedTest);
   return formattedTest;
 };
 
@@ -573,7 +575,7 @@ router.post('/', verifyToken, async (req, res) => {
       objective,
       settings,
       topics,
-      personaIds,
+      persona_ids,
       target_audience,
       language = 'pt'
     } = req.body;
@@ -604,7 +606,7 @@ router.post('/', verifyToken, async (req, res) => {
     if (!objective?.trim()) {
       return res.status(400).json({ error: 'Objective is required' });
     }
-    if (!target_audience?.ageRange?.trim()) {
+    if (!target_audience?.age_range?.trim()) {
       return res.status(400).json({ error: 'Age range is required' });
     }
     if (!target_audience?.location?.trim()) {
@@ -616,7 +618,7 @@ router.post('/', verifyToken, async (req, res) => {
     if (!Array.isArray(target_audience?.interests) || target_audience.interests.length === 0) {
       return res.status(400).json({ error: 'At least one interest is required' });
     }
-    if (!Array.isArray(target_audience?.painPoints) || target_audience.painPoints.length === 0) {
+    if (!Array.isArray(target_audience?.pain_points) || target_audience.pain_points.length === 0) {
       return res.status(400).json({ error: 'At least one pain point is required' });
     }
     if (!Array.isArray(target_audience?.needs) || target_audience.needs.length === 0) {
@@ -625,7 +627,7 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Garantir que os arrays sejam arrays válidos
     const validTopics = Array.isArray(topics) ? topics : [];
-    const validPersonaIds = Array.isArray(personaIds) ? personaIds : [];
+    const validPersonaIds = Array.isArray(persona_ids) ? persona_ids : [];
 
     // Garantir que settings tenha os valores padrão
     const validSettings = {
@@ -641,7 +643,7 @@ router.post('/', verifyToken, async (req, res) => {
       objective,
       settings: validSettings,
       topics: validTopics,
-      personaIds: validPersonaIds,
+      persona_ids: validPersonaIds,
       target_audience,
       language
     });
@@ -683,117 +685,70 @@ router.post('/', verifyToken, async (req, res) => {
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const testId = req.params.id;
-    console.log(`[PUT /tests/${testId}] Iniciando atualização do teste`);
+    console.log('=== DEBUG UPDATE TEST BACKEND ===');
+    console.log('ID:', testId);
     console.log('Request body completo:', JSON.stringify(req.body, null, 2));
-    const { 
-      title, 
-      description, 
-      objective,
-      settings,
-      topics,
-      personaIds,
-      target_audience,
-      language
-    } = req.body;
+    console.log('Target Audience recebido:', JSON.stringify(req.body.target_audience, null, 2));
 
-    // Build update query dynamically based on provided fields
-    const updates = [];
-    const values = [];
-    let paramCount = 1;
+    const userId = req.user.id;
 
-    if (title !== undefined) {
-      updates.push(`title = $${paramCount}`);
-      values.push(title);
-      paramCount++;
-    }
-
-    if (description !== undefined) {
-      updates.push(`description = $${paramCount}`);
-      values.push(description);
-      paramCount++;
-    }
-
-    if (objective !== undefined) {
-      updates.push(`objective = $${paramCount}`);
-      values.push(objective);
-      paramCount++;
-    }
-
-    if (settings !== undefined) {
-      updates.push(`settings = $${paramCount}::jsonb`);
-      values.push(settings);
-      paramCount++;
-    }
-
-    if (topics !== undefined) {
-      updates.push(`topics = $${paramCount}::text[]`);
-      values.push(topics);
-      paramCount++;
-    }
-
-    if (personaIds !== undefined) {
-      updates.push(`persona_ids = $${paramCount}::text[]`);
-      values.push(personaIds);
-      paramCount++;
-    }
-
-    if (target_audience !== undefined) {
-      updates.push(`target_audience = $${paramCount}::jsonb`);
-      values.push(target_audience);
-      paramCount++;
-    }
-
-    if (language !== undefined) {
-      updates.push(`language = $${paramCount}`);
-      values.push(language);
-      paramCount++;
-    }
-
-    // Add updated_at timestamp
-    updates.push('updated_at = CURRENT_TIMESTAMP');
-
-    // Add test ID and user ID to values array
-    values.push(testId);
-    values.push((req as any).user.id);
-
-    console.log('Query:', `
-      UPDATE tests 
-      SET ${updates.join(', ')}
-      WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
-    `);
-    console.log('Values:', values);
-
-    const result = await prisma.test.update({
+    // Verificar se o teste existe e pertence ao usuário
+    const existingTest = await prisma.test.findFirst({
       where: {
         id: testId,
-        user_id: (req as any).user.id
+        user_id: userId
+      }
+    });
+
+    if (!existingTest) {
+      return res.status(404).json({ error: 'Teste não encontrado' });
+    }
+
+    // Converter camelCase para snake_case no targetAudience
+    const targetAudience = req.body.targetAudience ? {
+      age_range: req.body.targetAudience.ageRange,
+      location: req.body.targetAudience.location,
+      income: req.body.targetAudience.income,
+      interests: req.body.targetAudience.interests,
+      pain_points: req.body.targetAudience.painPoints,
+      needs: req.body.targetAudience.needs
+    } : undefined;
+
+    console.log('Target Audience formatado:', targetAudience);
+
+    // Atualizar o teste
+    const updatedTest = await prisma.test.update({
+      where: {
+        id: testId
       },
       data: {
-        title: title,
-        description: description,
-        objective: objective,
-        settings: settings,
-        topics: topics,
-        persona_ids: personaIds,
-        target_audience: target_audience,
-        language: language,
+        title: req.body.title,
+        description: req.body.description,
+        objective: req.body.objective,
+        settings: typeof req.body.settings === 'string' ? JSON.parse(req.body.settings) : req.body.settings,
+        topics: req.body.topics,
+        persona_ids: req.body.persona_ids,
+        target_audience: {
+          age_range: req.body.target_audience?.age_range || '',
+          location: req.body.target_audience?.location || '',
+          income: req.body.target_audience?.income || '',
+          interests: req.body.target_audience?.interests || [],
+          pain_points: req.body.target_audience?.pain_points || [],
+          needs: req.body.target_audience?.needs || []
+        },
+        language: req.body.language,
         updated_at: new Date()
       }
     });
 
-    if (!result) {
-      return res.status(404).json({ error: 'Test not found' });
-    }
+    console.log('Teste atualizado:', JSON.stringify(updatedTest, null, 2));
 
-    console.log('Resultado da atualização:', result);
-
-    const updatedTest = formatTestData(result);
-    console.log('Teste formatado:', updatedTest);
-
-    res.json(updatedTest);
-  } catch (err) {
-    console.error('Erro ao atualizar teste:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    // Formatar e retornar o teste atualizado
+    const formattedTest = formatTestData(updatedTest);
+    res.json(formattedTest);
+  } catch (error) {
+    console.error('Erro ao atualizar teste:', error);
+    res.status(500).json({ error: 'Erro ao atualizar teste' });
   }
 });
 

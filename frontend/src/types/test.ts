@@ -13,25 +13,25 @@ export interface TestMessage {
     opportunity: string[];
   };
   personal_context: {
-    digitalComfort: string;
-    routineAlignment: string;
-    locationRelevance: string;
-    familyConsideration: string;
-    financialPerspective: string;
+    digital_comfort: string;
+    routine_alignment: string;
+    location_relevance: string;
+    family_consideration: string;
+    financial_perspective: string;
   };
   target_audience_alignment: {
-    ageMatch: string;
-    locationMatch: string;
-    incomeMatch: string;
-    interestOverlap: string;
-    painPointRelevance: string;
+    age_match: string;
+    location_match: string;
+    income_match: string;
+    interest_overlap: string;
+    pain_point_relevance: string;
   };
   metadata: {
     sentiment: number;
     confidence: number;
-    valueProposition: number;
-    personalRelevance: number;
-    implementationFeasibility: number;
+    value_proposition: number;
+    personal_relevance: number;
+    implementation_feasibility: number;
   };
   created_at: string;
   updated_at: string;
@@ -39,16 +39,16 @@ export interface TestMessage {
 }
 
 export interface TestAnalyticsData {
-  overallSentiment: number;
-  participationStats: {
-    personaId: string;
-    messageCount: number;
-    averageSentiment: number;
+  overall_sentiment: number;
+  participation_stats: {
+    persona_id: string;
+    message_count: number;
+    average_sentiment: number;
   }[];
 }
 
 export interface TestViewOptions {
-  viewMode: 'timeline' | 'grouped' | 'summary';
-  groupBy: 'persona';
-  sortBy: 'time';
+  view_mode: 'timeline' | 'grouped' | 'summary';
+  group_by: 'persona';
+  sort_by: 'time';
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -21,14 +21,43 @@ import {
   Button,
   SimpleGrid,
   Tag,
+  Wrap,
+  WrapItem,
+  Icon,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import TestMessage from './TestMessage';
 import ThinkingMessage from './ThinkingMessage';
 import { TestMessage as TestMessageType } from '../types/test';
-import { Persona } from '../types/persona';
-import { FaFilter, FaSearch, FaSort } from 'react-icons/fa';
+import { 
+  FaFilter, 
+  FaSearch, 
+  FaSort, 
+  FaUser, 
+  FaBirthdayCake, 
+  FaMapMarkerAlt,
+  FaMoneyBillWave,
+  FaEnvelope,
+  FaBriefcase,
+  FaInfoCircle,
+  FaTags,
+  FaComment
+} from 'react-icons/fa';
+
+interface Persona {
+  id: string;
+  name: string;
+  avatar?: string;
+  occupation: string;
+  age?: string;
+  location?: string;
+  bio?: string;
+  characteristics?: string[];
+  income?: string;
+  family_status?: string;
+  description?: string;
+}
 
 interface PersonaStatus {
   persona_id: string;
@@ -44,6 +73,7 @@ interface TestResponsesProps {
   is_running: boolean;
   thinking_personas: Set<string>;
   onDeleteMessage?: (message_id: string) => void;
+  testId: string;
 }
 
 const MotionBox = motion(Box);
@@ -56,6 +86,7 @@ const TestResponses: React.FC<TestResponsesProps> = ({
   is_running = false,
   thinking_personas = new Set(),
   onDeleteMessage,
+  testId,
 }) => {
   const { t } = useTranslation();
   const borderColor = useColorModeValue('gray.200', 'gray.600');
@@ -64,6 +95,34 @@ const TestResponses: React.FC<TestResponsesProps> = ({
   // Estados para filtros e busca
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'time'>('time');
+  
+  // Inicializar viewedMessages do localStorage
+  const [viewedMessages, setViewedMessages] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem(`viewedMessages_${testId}`);
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  // Salvar no localStorage quando viewedMessages mudar
+  useEffect(() => {
+    localStorage.setItem(`viewedMessages_${testId}`, JSON.stringify([...viewedMessages]));
+  }, [viewedMessages, testId]);
+
+  // Atualizar viewedMessages quando novas mensagens chegarem
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      const currentMessageIds = new Set(messages.map(m => m.id));
+      setViewedMessages(prev => {
+        const newSet = new Set(prev);
+        currentMessageIds.forEach(id => {
+          if (!prev.has(id)) {
+            // Não adiciona automaticamente à lista de vistos
+            // Será adicionado quando a mensagem for expandida
+          }
+        });
+        return newSet;
+      });
+    }
+  }, [messages]);
 
   // Debug logs
   console.log('TestResponses - Messages recebidas:', messages);
@@ -88,9 +147,9 @@ const TestResponses: React.FC<TestResponsesProps> = ({
           // Debug
           console.log('Mensagem para persona', message.persona_id, ':', message);
           personaMessages.push(message);
-          grouped.set(message.persona_id, personaMessages.sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          ));
+          // Ordenar mensagens por data em ordem decrescente
+          personaMessages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          grouped.set(message.persona_id, personaMessages);
         } else {
           console.warn('TestResponses: Mensagem inválida ou persona_id não encontrado:', message);
         }
@@ -207,39 +266,66 @@ const TestResponses: React.FC<TestResponsesProps> = ({
                     bg={bgColor}
                   >
                     <AccordionButton p={4}>
-                      <VStack flex="1" align="stretch" spacing={2}>
-                        <HStack flex="1" spacing={4}>
-                          <Avatar 
-                            name={persona.name} 
-                            src={persona.avatar} 
-                            size="sm"
-                            loading="lazy"
-                          />
-                          <VStack flex="1" align="start" spacing={1}>
-                            <Text fontWeight="bold">{persona.name}</Text>
-                            <Text fontSize="sm" color="gray.500">
-                              {persona.occupation} • {personaMessages.length} {t('test.messages.count')}
-                            </Text>
-                          </VStack>
-                          <Box display="flex" alignItems="center">
+                      <HStack flex="1" spacing={4} align="start">
+                        <Avatar 
+                          name={persona.name} 
+                          src={persona.avatar} 
+                          size="md"
+                          loading="lazy"
+                        />
+                        <VStack flex="1" align="start" spacing={1}>
+                          <HStack>
+                            <Text fontWeight="bold" fontSize="lg">{persona.name}</Text>
                             {renderStatusBadge(status?.status)}
-                            <AccordionIcon ml={2} />
+                          </HStack>
+                          <Text fontSize="sm" color="gray.500">
+                            {persona.occupation}{persona.age ? `, ${persona.age} anos` : ''}
+                          </Text>
+                          {persona.location && (
+                            <Text fontSize="sm" color="gray.500">
+                              {persona.location}
+                            </Text>
+                          )}
+                          {isThinking && (
+                            <Box>
+                              <ThinkingMessage
+                                persona={{
+                                  name: persona.name,
+                                  avatar: persona.avatar,
+                                  occupation: persona.occupation
+                                }}
+                                isVisible={true}
+                                compact={true}
+                              />
+                            </Box>
+                          )}
+                        </VStack>
+                        <HStack spacing={2}>
+                          <Box 
+                            border="1px" 
+                            borderColor={useColorModeValue('gray.100', 'gray.700')} 
+                            borderRadius="full" 
+                            px={2} 
+                            py={1}
+                            bg={useColorModeValue('gray.50', 'gray.800')}
+                          >
+                            <HStack spacing={1}>
+                              <Icon 
+                                as={FaEnvelope} 
+                                color={useColorModeValue('gray.400', 'gray.500')} 
+                                boxSize={3} 
+                              />
+                              <Text 
+                                fontSize="sm" 
+                                color={useColorModeValue('gray.500', 'gray.400')}
+                              >
+                                {personaMessages.length}
+                              </Text>
+                            </HStack>
                           </Box>
+                          <AccordionIcon />
                         </HStack>
-                        {isThinking && (
-                          <Box>
-                            <ThinkingMessage
-                              persona={{
-                                name: persona.name,
-                                avatar: persona.avatar,
-                                occupation: persona.occupation
-                              }}
-                              isVisible={true}
-                              compact={true}
-                            />
-                          </Box>
-                        )}
-                      </VStack>
+                      </HStack>
                     </AccordionButton>
                     <AccordionPanel pb={4}>
                       <VStack spacing={4} align="stretch">
@@ -249,7 +335,12 @@ const TestResponses: React.FC<TestResponsesProps> = ({
                             message={message}
                             persona={persona}
                             timestamp={message.created_at ? new Date(message.created_at) : undefined}
+                            messageNumber={personaMessages.length - index}
                             onDelete={onDeleteMessage}
+                            isNew={!viewedMessages.has(message.id)}
+                            onMessageViewed={() => {
+                              setViewedMessages(prev => new Set([...prev, message.id]));
+                            }}
                           />
                         ))}
                       </VStack>

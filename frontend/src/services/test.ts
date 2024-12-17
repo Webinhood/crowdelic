@@ -157,8 +157,21 @@ export const getTest = async (id: string): Promise<Test> => {
 
 export const createTest = async (data: CreateTestData): Promise<Test> => {
   console.log('API createTest called with:', data);
+  // Converter camelCase para snake_case
+  const formattedData = {
+    ...data,
+    target_audience: data.targetAudience ? {
+      age_range: data.targetAudience.ageRange,
+      location: data.targetAudience.location,
+      income: data.targetAudience.income,
+      interests: data.targetAudience.interests,
+      pain_points: data.targetAudience.painPoints,
+      needs: data.targetAudience.needs
+    } : undefined
+  };
+
   try {
-    const response = await api.post<Test>('/tests', data);
+    const response = await api.post<Test>('/tests', formattedData);
     console.log('API createTest response:', response.data);
     return response.data;
   } catch (error) {
@@ -168,16 +181,38 @@ export const createTest = async (data: CreateTestData): Promise<Test> => {
 };
 
 export const updateTest = async (id: string, data: Partial<Test>): Promise<Test> => {
-  console.log('API updateTest called with:', { id, data });
-  console.log('API updateTest request body:', data);
+  console.log('=== DEBUG UPDATE TEST ===');
+  console.log('ID:', id);
+  console.log('Data completa:', JSON.stringify(data, null, 2));
+  console.log('Target Audience:', JSON.stringify(data.targetAudience, null, 2));
+  
+  // Converter para snake_case manualmente
+  const formattedData = {
+    title: data.title,
+    description: data.description,
+    objective: data.objective,
+    settings: data.settings,
+    topics: data.topics,
+    persona_ids: data.personaIds,
+    target_audience: data.targetAudience ? {
+      age_range: data.targetAudience.ageRange || '',
+      location: data.targetAudience.location || '',
+      income: data.targetAudience.income || '',
+      interests: data.targetAudience.interests || [],
+      pain_points: data.targetAudience.painPoints || [],
+      needs: data.targetAudience.needs || []
+    } : undefined,
+    language: data.language
+  };
+
+  console.log('Dados formatados para API:', JSON.stringify(formattedData, null, 2));
+
   try {
-    const response = await api.put<Test>(`/tests/${id}`, data);
-    console.log('API updateTest response:', response.data);
-    console.log('API updateTest response status:', response.status);
+    const response = await api.put<Test>(`/tests/${id}`, formattedData);
+    console.log('Resposta da API:', JSON.stringify(response.data, null, 2));
     return response.data;
   } catch (error) {
-    console.error('API updateTest error:', error);
-    console.error('API updateTest error response:', error.response);
+    console.error('Erro ao atualizar teste:', error);
     throw error;
   }
 };

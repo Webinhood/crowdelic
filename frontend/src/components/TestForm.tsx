@@ -50,18 +50,18 @@ const defaultValues: CreateTestData = {
   objective: '',
   language: 'pt',
   settings: {
-    maxIterations: 5,
-    responseFormat: 'detailed',
-    interactionStyle: 'natural',
+    max_iterations: 5,
+    response_format: 'detailed',
+    interaction_style: 'natural',
   },
   topics: [],
-  personaIds: [],
-  targetAudience: {
-    ageRange: '',
+  persona_ids: [],
+  target_audience: {
+    age_range: '',
     location: '',
     income: '',
     interests: [],
-    painPoints: [],
+    pain_points: [],
     needs: []
   }
 };
@@ -108,25 +108,33 @@ const TestForm: React.FC<TestFormProps> = ({
 
   // Garantir que os valores iniciais sejam corretamente mesclados
   const formInitialValues = useMemo(() => {
-    console.log('Valores iniciais recebidos:', initialValues);
+    console.log('=== DEBUG FORM INITIAL VALUES ===');
+    console.log('Valores iniciais recebidos:', JSON.stringify(initialValues, null, 2));
     if (!initialValues) return defaultValues;
     
     // Garantir que todos os campos obrigatórios existam
-    return {
+    const mergedValues = {
       ...defaultValues,
       ...initialValues,
       settings: {
         ...defaultValues.settings,
         ...(initialValues.settings || {}),
       },
-      targetAudience: {
-        ...defaultValues.targetAudience,
-        ...(initialValues.targetAudience || {}),
+      target_audience: {
+        age_range: initialValues.target_audience?.age_range || '',
+        location: initialValues.target_audience?.location || '',
+        income: initialValues.target_audience?.income || '',
+        interests: Array.isArray(initialValues.target_audience?.interests) ? initialValues.target_audience.interests : [],
+        pain_points: Array.isArray(initialValues.target_audience?.pain_points) ? initialValues.target_audience.pain_points : [],
+        needs: Array.isArray(initialValues.target_audience?.needs) ? initialValues.target_audience.needs : []
       },
-      topics: initialValues.topics || [],
-      personaIds: initialValues.personaIds || [],
+      persona_ids: Array.isArray(initialValues.persona_ids) ? initialValues.persona_ids : [],
+      topics: Array.isArray(initialValues.topics) ? initialValues.topics : [],
       language: initialValues.language || 'pt'
     };
+
+    console.log('Valores mesclados:', JSON.stringify(mergedValues, null, 2));
+    return mergedValues;
   }, [initialValues]);
 
   const { data: personas = [], isLoading: isLoadingPersonas } = useQuery({
@@ -135,80 +143,34 @@ const TestForm: React.FC<TestFormProps> = ({
   });
 
   const handleFormSubmit = useCallback(async (values: CreateTestData, { setSubmitting }: any) => {
-    console.log('TestForm handleFormSubmit iniciado');
+    console.log('=== DEBUG FORM SUBMIT ===');
     console.log('Valores do formulário:', JSON.stringify(values, null, 2));
-    
     try {
-      // Validar campos obrigatórios antes de enviar
-      if (!values.title) {
-        console.error('Título é obrigatório');
-        throw new Error(t('test.form.validation.required.title'));
-      }
-      if (!values.description) {
-        console.error('Descrição é obrigatória');
-        throw new Error(t('test.form.validation.required.description'));
-      }
-      if (!values.objective) {
-        console.error('Objetivo é obrigatório');
-        throw new Error(t('test.form.validation.required.objective'));
-      }
-      if (!values.targetAudience?.ageRange) {
-        console.error('Faixa etária é obrigatória');
-        throw new Error(t('test.form.validation.required.ageRange'));
-      }
-      if (!values.targetAudience?.location) {
-        console.error('Localização é obrigatória');
-        throw new Error(t('test.form.validation.required.location'));
-      }
-      if (!values.targetAudience?.income) {
-        console.error('Renda é obrigatória');
-        throw new Error(t('test.form.validation.required.income'));
-      }
-      if (!values.targetAudience?.interests?.length) {
-        console.error('Pelo menos um interesse é obrigatório');
-        throw new Error(t('test.form.validation.required.interests'));
-      }
-      if (!values.targetAudience?.painPoints?.length) {
-        console.error('Pelo menos um ponto de dor é obrigatório');
-        throw new Error(t('test.form.validation.required.painPoints'));
-      }
-      if (!values.targetAudience?.needs?.length) {
-        console.error('Pelo menos uma necessidade é obrigatória');
-        throw new Error(t('test.form.validation.required.needs'));
-      }
-
-      // Garantir que todos os campos obrigatórios estejam presentes e no formato correto
       const submissionData = {
-        ...values,
-        title: values.title?.trim() || '',
-        description: values.description?.trim() || '',
-        objective: values.objective?.trim() || '',
-        language: values.language || 'pt',
-        topics: values.topics?.filter(t => t && t.trim()) || [],
-        personaIds: values.personaIds?.filter(Boolean) || [],
-        targetAudience: {
-          ageRange: values.targetAudience?.ageRange?.trim() || '',
-          location: values.targetAudience?.location?.trim() || '',
-          income: values.targetAudience?.income?.trim() || '',
-          interests: values.targetAudience?.interests?.filter(i => i && i.trim()) || [],
-          painPoints: values.targetAudience?.painPoints?.filter(p => p && p.trim()) || [],
-          needs: values.targetAudience?.needs?.filter(n => n && n.trim()) || []
-        },
+        title: values.title,
+        description: values.description,
+        objective: values.objective,
+        language: values.language,
         settings: {
-          maxIterations: parseInt(values.settings?.maxIterations?.toString() || '5'),
-          responseFormat: values.settings?.responseFormat || 'detailed',
-          interactionStyle: values.settings?.interactionStyle || 'natural'
-        }
+          max_iterations: Number(values.settings.max_iterations),
+          response_format: values.settings.response_format,
+          interaction_style: values.settings.interaction_style
+        },
+        topics: values.topics?.filter(t => t.trim()) || [],
+        persona_ids: values.persona_ids || [],
+        target_audience: values.target_audience ? {
+          age_range: values.target_audience.age_range || '',
+          location: values.target_audience.location || '',
+          income: values.target_audience.income || '',
+          interests: values.target_audience.interests?.filter(i => i.trim()) || [],
+          pain_points: values.target_audience.pain_points?.filter(p => p.trim()) || [],
+          needs: values.target_audience.needs?.filter(n => n.trim()) || []
+        } : undefined
       };
-
-      console.log('Dados limpos para submissão:', JSON.stringify(submissionData, null, 2));
-      
+      console.log('Dados formatados para envio:', JSON.stringify(submissionData, null, 2));
       await onSubmit(submissionData);
-      
-      console.log('onSubmit concluído com sucesso');
-      setSubmitting(false);
-    } catch (error) {
-      console.error('Erro durante handleFormSubmit:', error);
+    } catch (error: any) {
+      console.error('Erro durante o envio do formulário:', error);
       toast({
         title: t('test.form.error'),
         description: error.message || t('test.form.error'),
@@ -221,14 +183,23 @@ const TestForm: React.FC<TestFormProps> = ({
     }
   }, [onSubmit, toast, t]);
 
-  const handlePersonaSelect = (values: CreateTestData, setFieldValue: any, personaId: string) => {
-    const currentPersonaIds = values.personaIds || [];
+  const handlePersonaSelect = useCallback((values: CreateTestData, setFieldValue: any, personaId: string) => {
+    const currentPersonaIds = Array.isArray(values.persona_ids) ? values.persona_ids : [];
     if (currentPersonaIds.includes(personaId)) {
-      setFieldValue('personaIds', currentPersonaIds.filter(id => id !== personaId));
+      setFieldValue('persona_ids', currentPersonaIds.filter(id => id !== personaId));
     } else {
-      setFieldValue('personaIds', [...currentPersonaIds, personaId]);
+      setFieldValue('persona_ids', [...currentPersonaIds, personaId]);
     }
-  };
+  }, []);
+
+  const handleSelectAllPersonas = useCallback((values: CreateTestData, setFieldValue: any) => {
+    const allPersonaIds = personas.map(p => p.id);
+    setFieldValue('persona_ids', allPersonaIds);
+  }, [personas]);
+
+  const handleDeselectAllPersonas = useCallback((values: CreateTestData, setFieldValue: any) => {
+    setFieldValue('persona_ids', []);
+  }, []);
 
   return (
     <Card p={6}>
@@ -241,8 +212,8 @@ const TestForm: React.FC<TestFormProps> = ({
         enableReinitialize={true}
       >
         {({ values, setFieldValue, errors, touched, handleSubmit }) => {
-          console.log('Form errors:', JSON.stringify(errors, null, 2));
-          console.log('Form touched:', JSON.stringify(touched, null, 2));
+          console.log('Erros do formulário:', JSON.stringify(errors, null, 2));
+          console.log('Campos tocados:', JSON.stringify(touched, null, 2));
           return (
             <Form>
               <VStack spacing={6} align="stretch" bg={useColorModeValue('white', 'gray.900')} p={8} borderRadius="xl">
@@ -297,14 +268,14 @@ const TestForm: React.FC<TestFormProps> = ({
                   </HStack>
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                     <FormInput
-                      name="settings.maxIterations"
+                      name="settings.max_iterations"
                       label={t('test.form.settings.maxIterations.label')}
                       description={t('test.form.settings.maxIterations.description')}
                       placeholder={t('test.form.settings.maxIterations.placeholder')}
                       type="number"
                     />
                     <FormInput
-                      name="settings.responseFormat"
+                      name="settings.response_format"
                       label={t('test.form.settings.responseFormat.label')}
                       description={t('test.form.settings.responseFormat.description')}
                       placeholder={t('test.form.settings.responseFormat.placeholder')}
@@ -312,7 +283,7 @@ const TestForm: React.FC<TestFormProps> = ({
                   </SimpleGrid>
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mt={6}>
                     <FormInput
-                      name="settings.interactionStyle"
+                      name="settings.interaction_style"
                       label={t('test.form.settings.interactionStyle.label')}
                       description={t('test.form.settings.interactionStyle.description')}
                       placeholder={t('test.form.settings.interactionStyle.placeholder')}
@@ -340,7 +311,7 @@ const TestForm: React.FC<TestFormProps> = ({
                       placeholder={t('test.form.topics.placeholder')}
                     />
                     <IconButton
-                      aria-label="Add topic"
+                      aria-label="Adicionar tópico"
                       icon={<Icon as={FiPlus} />}
                       onClick={() => {
                         if (newTopic.trim()) {
@@ -390,7 +361,7 @@ const TestForm: React.FC<TestFormProps> = ({
                     {t('test.form.personas.select')}
                   </Button>
                   <Wrap mt={2}>
-                    {values.personaIds.map((personaId) => {
+                    {values.persona_ids.map((personaId) => {
                       const persona = personas.find((p) => p.id === personaId);
                       return (
                         persona && (
@@ -400,8 +371,8 @@ const TestForm: React.FC<TestFormProps> = ({
                               <TagCloseButton
                                 onClick={() =>
                                   setFieldValue(
-                                    'personaIds',
-                                    values.personaIds.filter((id) => id !== personaId)
+                                    'persona_ids',
+                                    values.persona_ids.filter((id) => id !== personaId)
                                   )
                                 }
                               />
@@ -425,13 +396,13 @@ const TestForm: React.FC<TestFormProps> = ({
                     {/* Coluna da Esquerda */}
                     <VStack spacing={6} align="stretch">
                       <FormInput
-                        name="targetAudience.ageRange"
+                        name="target_audience.age_range"
                         label={t('test.form.targetAudience.ageRange.label')}
                         description={t('test.form.targetAudience.ageRange.description')}
                         placeholder={t('test.form.targetAudience.ageRange.placeholder')}
                       />
                       <FormInput
-                        name="targetAudience.income"
+                        name="target_audience.income"
                         label={t('test.form.targetAudience.income.label')}
                         description={t('test.form.targetAudience.income.description')}
                         placeholder={t('test.form.targetAudience.income.placeholder')}
@@ -450,8 +421,8 @@ const TestForm: React.FC<TestFormProps> = ({
                                 e.preventDefault();
                                 const value = e.currentTarget.value.trim();
                                 if (value) {
-                                  setFieldValue('targetAudience.painPoints', [
-                                    ...values.targetAudience.painPoints,
+                                  setFieldValue('target_audience.pain_points', [
+                                    ...values.target_audience.pain_points,
                                     value,
                                   ]);
                                   e.currentTarget.value = '';
@@ -460,14 +431,14 @@ const TestForm: React.FC<TestFormProps> = ({
                             }}
                           />
                           <IconButton
-                            aria-label="Add pain point"
+                            aria-label="Adicionar ponto de dor"
                             icon={<Icon as={FiPlus} />}
                             onClick={(e) => {
                               const input = document.querySelector('input[name="newPainPoint"]') as HTMLInputElement;
                               const value = input?.value.trim();
                               if (value) {
-                                setFieldValue('targetAudience.painPoints', [
-                                  ...values.targetAudience.painPoints,
+                                setFieldValue('target_audience.pain_points', [
+                                  ...values.target_audience.pain_points,
                                   value,
                                 ]);
                                 input.value = '';
@@ -476,15 +447,15 @@ const TestForm: React.FC<TestFormProps> = ({
                           />
                         </HStack>
                         <Wrap mt={2}>
-                          {values.targetAudience.painPoints.map((painPoint, index) => (
+                          {values.target_audience.pain_points.map((painPoint, index) => (
                             <WrapItem key={index}>
                               <Tag size="md" borderRadius="full" variant="solid" colorScheme="red">
                                 <TagLabel>{painPoint}</TagLabel>
                                 <TagCloseButton
                                   onClick={() =>
                                     setFieldValue(
-                                      'targetAudience.painPoints',
-                                      values.targetAudience.painPoints.filter((_, i) => i !== index)
+                                      'target_audience.pain_points',
+                                      values.target_audience.pain_points.filter((_, i) => i !== index)
                                     )
                                   }
                                 />
@@ -498,7 +469,7 @@ const TestForm: React.FC<TestFormProps> = ({
                     {/* Coluna da Direita */}
                     <VStack spacing={6} align="stretch">
                       <FormInput
-                        name="targetAudience.location"
+                        name="target_audience.location"
                         label={t('test.form.targetAudience.location.label')}
                         description={t('test.form.targetAudience.location.description')}
                         placeholder={t('test.form.targetAudience.location.placeholder')}
@@ -517,8 +488,8 @@ const TestForm: React.FC<TestFormProps> = ({
                                 e.preventDefault();
                                 const value = e.currentTarget.value.trim();
                                 if (value) {
-                                  setFieldValue('targetAudience.interests', [
-                                    ...values.targetAudience.interests,
+                                  setFieldValue('target_audience.interests', [
+                                    ...values.target_audience.interests,
                                     value,
                                   ]);
                                   e.currentTarget.value = '';
@@ -527,14 +498,14 @@ const TestForm: React.FC<TestFormProps> = ({
                             }}
                           />
                           <IconButton
-                            aria-label="Add interest"
+                            aria-label="Adicionar interesse"
                             icon={<Icon as={FiPlus} />}
                             onClick={(e) => {
                               const input = document.querySelector('input[name="newInterest"]') as HTMLInputElement;
                               const value = input?.value.trim();
                               if (value) {
-                                setFieldValue('targetAudience.interests', [
-                                  ...values.targetAudience.interests,
+                                setFieldValue('target_audience.interests', [
+                                  ...values.target_audience.interests,
                                   value,
                                 ]);
                                 input.value = '';
@@ -543,15 +514,15 @@ const TestForm: React.FC<TestFormProps> = ({
                           />
                         </HStack>
                         <Wrap mt={2}>
-                          {values.targetAudience.interests.map((interest, index) => (
+                          {values.target_audience.interests.map((interest, index) => (
                             <WrapItem key={index}>
                               <Tag size="md" borderRadius="full" variant="solid" colorScheme="blue">
                                 <TagLabel>{interest}</TagLabel>
                                 <TagCloseButton
                                   onClick={() =>
                                     setFieldValue(
-                                      'targetAudience.interests',
-                                      values.targetAudience.interests.filter((_, i) => i !== index)
+                                      'target_audience.interests',
+                                      values.target_audience.interests.filter((_, i) => i !== index)
                                     )
                                   }
                                 />
@@ -574,8 +545,8 @@ const TestForm: React.FC<TestFormProps> = ({
                                 e.preventDefault();
                                 const value = e.currentTarget.value.trim();
                                 if (value) {
-                                  setFieldValue('targetAudience.needs', [
-                                    ...values.targetAudience.needs,
+                                  setFieldValue('target_audience.needs', [
+                                    ...values.target_audience.needs,
                                     value,
                                   ]);
                                   e.currentTarget.value = '';
@@ -584,14 +555,14 @@ const TestForm: React.FC<TestFormProps> = ({
                             }}
                           />
                           <IconButton
-                            aria-label="Add need"
+                            aria-label="Adicionar necessidade"
                             icon={<Icon as={FiPlus} />}
                             onClick={(e) => {
                               const input = document.querySelector('input[name="newNeed"]') as HTMLInputElement;
                               const value = input?.value.trim();
                               if (value) {
-                                setFieldValue('targetAudience.needs', [
-                                  ...values.targetAudience.needs,
+                                setFieldValue('target_audience.needs', [
+                                  ...values.target_audience.needs,
                                   value,
                                 ]);
                                 input.value = '';
@@ -600,15 +571,15 @@ const TestForm: React.FC<TestFormProps> = ({
                           />
                         </HStack>
                         <Wrap mt={2}>
-                          {values.targetAudience.needs.map((need, index) => (
+                          {values.target_audience.needs.map((need, index) => (
                             <WrapItem key={index}>
                               <Tag size="md" borderRadius="full" variant="solid" colorScheme="green">
                                 <TagLabel>{need}</TagLabel>
                                 <TagCloseButton
                                   onClick={() =>
                                     setFieldValue(
-                                      'targetAudience.needs',
-                                      values.targetAudience.needs.filter((_, i) => i !== index)
+                                      'target_audience.needs',
+                                      values.target_audience.needs.filter((_, i) => i !== index)
                                     )
                                   }
                                 />
@@ -624,14 +595,9 @@ const TestForm: React.FC<TestFormProps> = ({
                 {showSubmitButton && (
                   <Button
                     type="submit"
-                    colorScheme="teal"
-                    size="lg"
-                    w="100%"
+                    colorScheme="brand"
                     isLoading={isSubmitting}
-                    onClick={() => {
-                      console.log('Submit button clicked');
-                      handleSubmit();
-                    }}
+                    loadingText={t('common.submitting')}
                   >
                     {submitLabel || t('test.form.submit')}
                   </Button>
@@ -648,12 +614,16 @@ const TestForm: React.FC<TestFormProps> = ({
                       size="sm"
                       onClick={() => {
                         const allPersonaIds = personas.map(p => p.id);
-                        const shouldSelectAll = values.personaIds.length < personas.length;
-                        setFieldValue('personaIds', shouldSelectAll ? allPersonaIds : []);
+                        const shouldSelectAll = values.persona_ids.length < personas.length;
+                        if (shouldSelectAll) {
+                          handleSelectAllPersonas(values, setFieldValue);
+                        } else {
+                          handleDeselectAllPersonas(values, setFieldValue);
+                        }
                       }}
-                      colorScheme={values.personaIds.length === personas.length ? "teal" : "gray"}
+                      colorScheme={values.persona_ids.length === personas.length ? "teal" : "gray"}
                     >
-                      {values.personaIds.length === personas.length 
+                      {values.persona_ids.length === personas.length 
                         ? t('test.form.personas.deselectAll')
                         : t('test.form.personas.selectAll')}
                     </Button>
@@ -677,13 +647,13 @@ const TestForm: React.FC<TestFormProps> = ({
                             onClick={() => {
                               handlePersonaSelect(values, setFieldValue, persona.id);
                             }}
-                            bg={values?.personaIds?.includes(persona.id) 
+                            bg={values?.persona_ids?.includes(persona.id) 
                               ? useColorModeValue('teal.50', 'teal.800') 
                               : useColorModeValue('gray.50', 'gray.700')}
                             p={4}
                             borderRadius="md"
                             _hover={{ 
-                              bg: values?.personaIds?.includes(persona.id)
+                              bg: values?.persona_ids?.includes(persona.id)
                                 ? useColorModeValue('teal.100', 'teal.700')
                                 : useColorModeValue('gray.100', 'gray.600')
                             }}
@@ -713,7 +683,7 @@ const TestForm: React.FC<TestFormProps> = ({
                                   </Wrap>
                                 )}
                               </VStack>
-                              {values?.personaIds?.includes(persona.id) && (
+                              {values?.persona_ids?.includes(persona.id) && (
                                 <Icon as={FiCheck} color={useColorModeValue('teal.500', 'teal.300')} boxSize={5} flexShrink={0} />
                               )}
                             </HStack>
