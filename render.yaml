@@ -16,7 +16,10 @@ services:
       - key: OPENAI_API_KEY
         sync: false # Será configurado manualmente no Render
       - key: REDIS_URL
-        sync: false # Será configurado manualmente no Render
+        fromService:
+          type: redis
+          name: crowdelic-redis
+          property: connectionString
 
   # Serviço do Frontend
   - type: web
@@ -40,3 +43,8 @@ databases:
   - name: crowdelic-db
     plan: basic-256mb
     ipAllowList: [] # Permitir todas as conexões
+
+redis:
+  - name: crowdelic-redis
+    plan: free
+    maxmemoryPolicy: noeviction
