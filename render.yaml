@@ -1,4 +1,11 @@
 services:
+  # Serviço do Redis
+  - type: redis
+    name: crowdelic-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
   # Serviço do Backend
   - type: web
     name: crowdelic-api
@@ -33,9 +40,9 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://crowdelic-api.onrender.com # Será atualizado após criar o backend
+        value: https://crowdelic-api.onrender.com
       - key: VITE_SOCKET_URL
-        value: https://crowdelic-api.onrender.com # Será atualizado após criar o backend
+        value: https://crowdelic-api.onrender.com
       - key: VITE_ENVIRONMENT
         value: production
 
@@ -43,8 +50,3 @@ databases:
   - name: crowdelic-db
     plan: basic-256mb
     ipAllowList: [] # Permitir todas as conexões
-
-redis:
-  - name: crowdelic-redis
-    plan: free
-    maxmemoryPolicy: noeviction
