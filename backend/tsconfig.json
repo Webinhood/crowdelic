@@ -11,8 +11,15 @@
     "noImplicitAny": false,
     "strictNullChecks": false,
     "allowJs": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "noEmitOnError": false
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.backup.ts",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }
