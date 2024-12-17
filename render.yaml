@@ -38,5 +38,5 @@ services:
 
 databases:
   - name: crowdelic-db
-    plan: free
+    plan: basic-256mb
     ipAllowList: [] # Permitir todas as conexões
