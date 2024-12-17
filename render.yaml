@@ -11,7 +11,7 @@ services:
     name: crowdelic-api
     env: node
     plan: starter
-    buildCommand: cd backend && npm install && npm run build
+    buildCommand: cd backend && npm install && npm i --save-dev @types/redis @types/pg @types/express @types/bcryptjs @types/jsonwebtoken @types/response-time && npm run build
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
